@@ -123,22 +123,22 @@ const AuthProvider = ({ children }) => {
   const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
-    // Mobile-optimierte Initialisierung
+    // Mobile-optimierte Initialisierung - KEINE API CALLS FÜR WEB
     console.log('🚀 Stadtwache Mobile App starting...');
     
-    // Nur für Mobile - Auth prüfen
+    // Nur für Mobile - Auth prüfen, NIEMALS für Web
     if (Platform.OS !== 'web') {
       checkAuthState();
+      setupAxiosInterceptors();
     } else {
-      // Web: Direkt auf Login setzen
+      // Web: Direkt auf Login setzen, KEINE BACKEND-CALLS
+      console.log('🌐 Web-Modus: Überspringe alle Backend-Calls');
       setIsAuthenticated(false);
       setUser(null);
       setToken(null);
     }
     
-    // Mobile-optimierte Interceptors
-    setupAxiosInterceptors();
-    console.log('✅ Stadtwache Mobile ready');
+    console.log('✅ Stadtwache ready');
   }, []);
 
   const setupAxiosInterceptors = () => {
