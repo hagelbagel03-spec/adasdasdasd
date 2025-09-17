@@ -668,6 +668,9 @@ const IncidentMapModal = ({ visible, onClose, incident }) => {
 
 // Modern Main App
 const MainApp = ({ appConfig, setAppConfig }) => {
+  console.log('🚀 MainApp gestartet, User:', !!user);
+  console.log('🚀 MainApp appConfig:', appConfig);
+  
   const { user, updateUser, logout, token } = useAuth();
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('home');
