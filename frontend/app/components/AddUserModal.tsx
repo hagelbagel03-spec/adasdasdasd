@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, createContext } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,10 @@ import axios from 'axios';
 // Mobile-First Responsive Design
 const { width: screenWidth } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
+const isSmallScreen = screenWidth < 400;
 
-// Theme context import - we'll receive it as props
+// Create a default theme context for fallback
+const ThemeContext = createContext(null);
 
 const useTheme = () => {
   const context = useContext(ThemeContext);
