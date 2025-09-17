@@ -521,7 +521,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
             {loading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={dynamicStyles.saveButtonText}>Erstellen</Text>
+              <Text style={dynamicStyles.saveButtonText}>Hinzufügen</Text>
             )}
           </TouchableOpacity>
         </View>
