@@ -100,6 +100,7 @@ class UserCreate(BaseModel):
     role: Optional[str] = UserRole.POLICE  # Default role
     badge_number: Optional[str] = None
     department: Optional[str] = None
+    team: Optional[str] = None  # Team-Zuordnung (Alpha, Bravo, etc.)
     phone: Optional[str] = None
     service_number: Optional[str] = None
     rank: Optional[str] = None
