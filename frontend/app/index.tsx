@@ -705,10 +705,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       try {
         console.log('📍 Starte GPS-Standort-Ermittlung...');
         
-        // Import Location dynamically to avoid issues
-        const Location = require('expo-location');
-        
-        // Request permissions
+        // Request permissions using the already imported Location module
         console.log('📍 Fordere GPS-Berechtigung an...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
