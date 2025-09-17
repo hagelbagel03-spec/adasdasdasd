@@ -479,6 +479,20 @@ async def get_users_by_status(current_user: User = Depends(get_current_user)):
     
     return users_by_status
 
+# App config endpoint - CRITICAL for web app loading
+@api_router.get("/app/config")
+async def get_app_config():
+    return {
+        "app_name": "Stadtwache",
+        "version": "1.0.0",
+        "environment": "production",
+        "features": {
+            "gps_enabled": True,
+            "emergency_alerts": True,
+            "reports": True
+        }
+    }
+
 # Include router
 app.include_router(api_router)
 
