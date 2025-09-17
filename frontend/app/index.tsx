@@ -1178,12 +1178,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       {/* Floating Action Button */}
       <TouchableOpacity style={styles.fab}>
-        <LinearGradient
-          colors={[colors.primary, colors.primaryDark]}
-          style={styles.fabGradient}
-        >
+        <View style={styles.fabGradient}>
           <Ionicons name="add" size={24} color="white" />
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {/* Modals */}
