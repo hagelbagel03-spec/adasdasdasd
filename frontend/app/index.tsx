@@ -10141,22 +10141,16 @@ Beispielinhalt:
   );
 }
 
-// Main App Component
+// Main App Component - CLEAN STRUCTURE
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <StadtwacheApp />
+        <MainApp />
       </AuthProvider>
     </ThemeProvider>
   );
 }
-
-// Rename MainApp to StadtwacheApp to avoid conflicts  
-const StadtwacheApp = () => {
-  // All the main app logic goes here - but we need the complete structure
-  return <MainApp />;
-};
 
   // Load app configuration
   const loadAppConfig = async () => {
