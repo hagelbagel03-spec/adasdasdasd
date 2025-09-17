@@ -7248,7 +7248,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                     {searchQuery 
                       ? `Keine Personen gefunden für "${searchQuery}"` 
                       : personFilter !== 'all'
-                        ? `Keine ${personFilter === 'vermisst' ? 'vermissten' : personFilter === 'gesucht' ? 'gesuchten' : 'gefundenen'} Personen`
+                        ? `Keine ${personFilter === 'vermisst' ? 'vermissten' : personFilter === 'gesucht' ? 'gesuchten' : 'erledigten'} Personen`
                         : "Keine Personen in der Datenbank"
                     }
                   </Text>
