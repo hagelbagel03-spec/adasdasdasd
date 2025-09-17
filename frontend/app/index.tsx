@@ -30,94 +30,7 @@ import GoogleMapsView from './components/GoogleMapsView';
 
 const { width, height } = Dimensions.get('window');
 
-// PROFESSIONAL MODERN DESIGN SYSTEM 2024
-const isSmallScreen = width < 400;
-const isMediumScreen = width >= 400 && width < 600;
-const isLargeScreen = width >= 600;
-
-// MODERN DESIGN TOKENS - PROFESSIONAL SYSTEM
-const DESIGN_SYSTEM = {
-  colors: {
-    // Professional Blue Palette
-    primary: {
-      50: '#EBF8FF',
-      100: '#BEE3F8',
-      200: '#90CDF4',
-      300: '#63B3ED',
-      400: '#4299E1',
-      500: '#3182CE', // Main primary
-      600: '#2B6CB0',
-      700: '#2C5282',
-      800: '#2A4365',
-      900: '#1A365D',
-    },
-    // Professional Gray Palette
-    neutral: {
-      50: '#F7FAFC',
-      100: '#EDF2F7',
-      200: '#E2E8F0',
-      300: '#CBD5E1',
-      400: '#A0AEC0',
-      500: '#718096',
-      600: '#4A5568',
-      700: '#2D3748',
-      800: '#1A202C',
-      900: '#171923',
-    },
-    // Status Colors
-    success: '#48BB78',
-    warning: '#ED8936',
-    error: '#F56565',
-    info: '#4299E1',
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-    xxl: 48,
-    xxxl: 64,
-  },
-  borderRadius: {
-    sm: 6,
-    md: 10,
-    lg: 16,
-    xl: 20,
-    xxl: 24,
-    full: 9999,
-  },
-  shadows: {
-    sm: {
-      boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
-      elevation: 2,
-    },
-    md: {
-      boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
-      elevation: 4,
-    },
-    lg: {
-      boxShadow: '0px 10px 12px rgba(0, 0, 0, 0.15)',
-      elevation: 8,
-    },
-    xl: {
-      boxShadow: '0px 20px 25px rgba(0, 0, 0, 0.25)',
-      elevation: 12,
-    },
-  },
-  typography: {
-    xs: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
-    sm: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
-    base: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
-    lg: { fontSize: 18, lineHeight: 28, fontWeight: '500' },
-    xl: { fontSize: 20, lineHeight: 28, fontWeight: '600' },
-    '2xl': { fontSize: 24, lineHeight: 32, fontWeight: '700' },
-    '3xl': { fontSize: 30, lineHeight: 36, fontWeight: '800' },
-    '4xl': { fontSize: 36, lineHeight: 40, fontWeight: '900' },
-  },
-};
-
-// PROFESSIONAL THEME CONTEXT WITH MODERN COLORS
+// Theme Context für Dark/Light Mode
 const ThemeContext = createContext();
 
 const useTheme = () => {
@@ -159,89 +72,42 @@ const ThemeProvider = ({ children }) => {
   const theme = {
     isDarkMode,
     toggleTheme,
-    DESIGN_SYSTEM, // Make design tokens available
     colors: isDarkMode ? {
-      // MODERN DARK THEME - PROFESSIONAL 2024
-      primary: DESIGN_SYSTEM.colors.primary[400],          // Bright Blue
-      primaryLight: DESIGN_SYSTEM.colors.primary[300],     // Lighter Blue  
-      primaryDark: DESIGN_SYSTEM.colors.primary[600],      // Darker Blue
-      secondary: DESIGN_SYSTEM.colors.neutral[400],        // Medium Gray
-      accent: '#22D3EE',                                   // Cyan accent
-      
-      // Status Colors
-      success: DESIGN_SYSTEM.colors.success,              // Green
-      warning: DESIGN_SYSTEM.colors.warning,              // Orange  
-      error: DESIGN_SYSTEM.colors.error,                  // Red
-      info: DESIGN_SYSTEM.colors.info,                    // Blue
-      
-      // Professional Background System
-      background: DESIGN_SYSTEM.colors.neutral[900],      // Deep Dark
-      surface: DESIGN_SYSTEM.colors.neutral[800],         // Card Surface
-      surfaceVariant: DESIGN_SYSTEM.colors.neutral[700],  // Variant Surface
-      surfaceElevated: DESIGN_SYSTEM.colors.neutral[750], // Elevated Surface
-      card: DESIGN_SYSTEM.colors.neutral[800],            // Card Background
-      elevated: DESIGN_SYSTEM.colors.neutral[700],        // Elevated surfaces
-      
-      // Modern Text Hierarchy
-      text: DESIGN_SYSTEM.colors.neutral[50],             // Primary Text
-      textSecondary: DESIGN_SYSTEM.colors.neutral[300],   // Secondary Text
-      textMuted: DESIGN_SYSTEM.colors.neutral[400],       // Muted Text
-      textDisabled: DESIGN_SYSTEM.colors.neutral[600],    // Disabled Text
-      
-      // Professional Border System
-      border: DESIGN_SYSTEM.colors.neutral[600],          // Default Border
-      borderLight: DESIGN_SYSTEM.colors.neutral[700],     // Light Border
-      borderStrong: DESIGN_SYSTEM.colors.neutral[500],    // Strong Border
-      
-      // Interactive States  
-      successLight: DESIGN_SYSTEM.colors.success + '20',
-      warningLight: DESIGN_SYSTEM.colors.warning + '20',
-      errorLight: DESIGN_SYSTEM.colors.error + '20',
-      infoLight: DESIGN_SYSTEM.colors.info + '20',
-      
+      // Dark Theme
+      primary: '#3B82F6',          // Professional Blue
+      secondary: '#60A5FA',        // Lighter Blue
+      accent: '#22D3EE',           // Cyan accent
+      success: '#10B981',          // Professional Green
+      warning: '#F59E0B',          // Professional Orange
+      error: '#EF4444',            // Professional Red
+      background: '#0F172A',       // Dark Navy
+      surface: '#1E293B',          // Dark Surface
+      card: '#334155',             // Card Background
+      elevated: '#475569',         // Elevated surfaces
+      text: '#F8FAFC',             // Light text
+      textSecondary: '#CBD5E1',    // Medium text
+      textMuted: '#94A3B8',        // Muted text
+      border: '#475569',           // Dark border
       shadow: 'rgba(0, 0, 0, 0.4)',
       overlay: 'rgba(0, 0, 0, 0.6)',
     } : {
-      // MODERN LIGHT THEME - PROFESSIONAL 2024
-      primary: DESIGN_SYSTEM.colors.primary[600],          // Professional Blue
-      primaryLight: DESIGN_SYSTEM.colors.primary[500],     // Lighter Blue
-      primaryDark: DESIGN_SYSTEM.colors.primary[700],      // Darker Blue
-      secondary: DESIGN_SYSTEM.colors.neutral[600],        // Medium Gray
-      accent: '#06B6D4',                                   // Cyan accent
-      
-      // Status Colors  
-      success: DESIGN_SYSTEM.colors.success,              // Green
-      warning: DESIGN_SYSTEM.colors.warning,              // Orange
-      error: DESIGN_SYSTEM.colors.error,                  // Red
-      info: DESIGN_SYSTEM.colors.info,                    // Blue
-      
-      // Professional Background System
-      background: DESIGN_SYSTEM.colors.neutral[50],       // Soft Background
-      surface: '#FFFFFF',                                  // Pure White Surface
-      surfaceVariant: DESIGN_SYSTEM.colors.neutral[100],  // Variant Surface
-      surfaceElevated: '#FAFAFA',                         // Elevated Surface
-      card: '#FFFFFF',                                     // Card Background
-      elevated: DESIGN_SYSTEM.colors.neutral[100],        // Elevated surfaces
-      
-      // Modern Text Hierarchy
-      text: DESIGN_SYSTEM.colors.neutral[900],            // Primary Text
-      textSecondary: DESIGN_SYSTEM.colors.neutral[700],   // Secondary Text  
-      textMuted: DESIGN_SYSTEM.colors.neutral[500],       // Muted Text
-      textDisabled: DESIGN_SYSTEM.colors.neutral[400],    // Disabled Text
-      
-      // Professional Border System
-      border: DESIGN_SYSTEM.colors.neutral[200],          // Default Border
-      borderLight: DESIGN_SYSTEM.colors.neutral[100],     // Light Border
-      borderStrong: DESIGN_SYSTEM.colors.neutral[300],    // Strong Border
-      
-      // Interactive States
-      successLight: DESIGN_SYSTEM.colors.success + '10',
-      warningLight: DESIGN_SYSTEM.colors.warning + '10', 
-      errorLight: DESIGN_SYSTEM.colors.error + '10',
-      infoLight: DESIGN_SYSTEM.colors.info + '10',
-      
-      shadow: 'rgba(0, 0, 0, 0.1)',
-      overlay: 'rgba(0, 0, 0, 0.4)',
+      // Light Theme
+      primary: '#1E40AF',          // Professional Blue
+      secondary: '#3B82F6',        // Lighter Blue
+      accent: '#06B6D4',           // Cyan accent
+      success: '#059669',          // Professional Green
+      warning: '#D97706',          // Professional Orange
+      error: '#DC2626',            // Professional Red
+      background: '#F8FAFC',       // Soft White
+      surface: '#FFFFFF',          // Pure White
+      card: '#FFFFFF',             // Card Background
+      elevated: '#F1F5F9',         // Elevated surfaces
+      text: '#0F172A',             // Dark text
+      textSecondary: '#334155',    // Medium text
+      textMuted: '#64748B',        // Light text
+      border: '#E2E8F0',           // Light border
+      shadow: 'rgba(15, 23, 42, 0.08)',
+      overlay: 'rgba(15, 23, 42, 0.4)',
     }
   };
 
@@ -511,7 +377,10 @@ const LoginScreen = ({ appConfig }) => {
       paddingHorizontal: 32,
       borderRadius: 12,
       marginTop: 16,
-      boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
       elevation: 8,
     },
     loginButtonDisabled: {
@@ -679,7 +548,10 @@ const IncidentMapModal = ({ visible, onClose, incident }) => {
       borderRadius: 16,
       overflow: 'hidden',
       elevation: 4,
-      boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.25)',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
     },
     webMapContainer: {
       flex: 1,
@@ -698,7 +570,10 @@ const IncidentMapModal = ({ visible, onClose, incident }) => {
       padding: 20,
       borderRadius: 16,
       elevation: 4,
-      boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.25)',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
     },
     incidentTitle: {
       fontSize: 18,
@@ -2244,19 +2119,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         headers: { Authorization: `Bearer ${token}` }
       } : {};
 
-      // FIXED: Use REAL GPS coordinates instead of hardcoded
       const incidentData = {
         title: incidentFormData.title.trim(),
         description: incidentFormData.description.trim(),
         priority: incidentFormData.priority,
-        location: incidentFormData.coordinates ? {
-          lat: incidentFormData.coordinates.lat,
-          lng: incidentFormData.coordinates.lng
-        } : {
-          lat: 51.2878,  // Fallback: Schwelm coordinates only if no GPS
+        location: {
+          lat: 51.2878,  // Default: Schwelm coordinates
           lng: 7.3372
         },
-        coordinates: incidentFormData.coordinates, // Real GPS coordinates
         address: incidentFormData.location.trim(),
         images: incidentFormData.photo ? [incidentFormData.photo] : []
       };
@@ -3068,10 +2938,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       // Get current position with timeout and error handling
       let location;
       try {
-        // FIXED: Use HIGH accuracy GPS for precise location
         location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High, // Changed back to High for better accuracy
-          timeout: 15000, // Increased timeout for better GPS signal
+          accuracy: Location.Accuracy.Balanced, // Changed from High to Balanced
+          timeout: 10000, // Reduced timeout to 10 seconds
         });
       } catch (locationError) {
         console.error('❌ Location fetch failed:', locationError);
@@ -3261,7 +3130,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       height: 36,
       borderRadius: 18,
       gap: 4,
-      boxShadow: '0px 2px 4px rgba(255, 0, 0, 0.5)',
+      shadowColor: '#FF0000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.5,
+      shadowRadius: 4,
       elevation: 6,
     },
     sosButtonText: {
@@ -3332,7 +3204,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 16,
       padding: 24,
       alignItems: 'center',
-      boxShadow: '0px 4px 8px rgba(220, 38, 38, 0.3)',
+      shadowColor: '#DC2626',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
       elevation: 8,
     },
     sosSendButtonText: {
@@ -3487,10 +3362,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderLeftWidth: 4,
-      
-       height: 2 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
       elevation: 4,
     },
     statContent: {
@@ -3537,10 +3412,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginTop: 24,
       borderRadius: 20,
       padding: 20,
-      
-       height: 4 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
       elevation: 6,
     },
     cardHeader: {
@@ -3657,10 +3532,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderLeftColor: colors.primary,
       flexDirection: 'row',
       alignItems: 'center',
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 3,
     },
     personInfo: {
@@ -3897,10 +3772,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginHorizontal: 2,
       borderLeftWidth: 6,
       flexDirection: 'column',
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 3,
     },
     incidentDetailTitle: {
@@ -3964,10 +3839,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 18,
       justifyContent: 'center',
       alignItems: 'center',
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
       elevation: 3,
     },
 
@@ -3984,10 +3859,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderColor: colors.border,
       paddingHorizontal: 16,
       paddingVertical: 12,
-      
-       height: 2 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 2,
     },
     searchIcon: {
@@ -4103,10 +3978,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderTopWidth: 1,
       borderTopColor: colors.border,
       elevation: 8,
-      
-       height: -2 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
     },
     tabItem: {
       flex: 1,
@@ -4358,10 +4233,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderWidth: 1,
       borderColor: colors.border,
       gap: 12,
-      
-       height: 1 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 2,
     },
     quickLinkText: {
@@ -4413,10 +4288,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 20,
       marginHorizontal: 16,
       marginVertical: 8,
-      
-       height: 4 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
       elevation: 4,
       borderWidth: 1,
       borderColor: colors.border,
@@ -4472,10 +4347,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 20,
       marginHorizontal: 16,
       marginVertical: 8,
-      
-       height: 4 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
       elevation: 4,
       borderWidth: 1,
       borderColor: colors.border,
@@ -4591,10 +4466,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderWidth: 1,
       borderColor: colors.border,
       gap: 12,
-      
-       height: 1 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 2,
     },
     quickLinkText: {
@@ -4655,10 +4530,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingVertical: 18,
       borderRadius: 16,
       marginTop: 24,
-      
-       height: 4 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
       elevation: 8,
     },
     submitButtonDisabled: {
@@ -4693,10 +4568,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 18,
       borderRadius: 16,
       marginBottom: 12,
-      
-       height: 2 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
       elevation: 4,
     },
     statusTitle: {
@@ -4722,10 +4597,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 20,
       borderRadius: 16,
       marginBottom: 12,
-      
-       height: 2 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
       elevation: 4,
     },
     officerInfo: {
@@ -4977,10 +4852,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       width: '100%',
       maxWidth: 400,
       maxHeight: '90%',
-      
-       height: 8 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
       elevation: 16,
     },
     modalHeader: {
@@ -5027,10 +4902,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingVertical: 16,
       borderRadius: 12,
       marginTop: 24,
-      
-       height: 4 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
       elevation: 8,
     },
     registerButtonDisabled: {
@@ -5085,10 +4960,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 3,
     },
 
@@ -5116,10 +4991,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
       elevation: 2,
     },
 
@@ -5158,10 +5033,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginBottom: 12,
       padding: 12,
       borderRadius: 16,
-      
-       height: 1 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
       elevation: 1,
     },
 
@@ -5231,10 +5106,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderColor: colors.border,
       paddingHorizontal: 16,
       paddingVertical: 8,
-      
-       height: 1 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
       elevation: 1,
     },
 
@@ -5260,10 +5135,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     sendButtonActive: {
       backgroundColor: colors.primary,
-      
-       height: 2 },
-      
-      
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
       elevation: 3,
     },
 
@@ -5300,10 +5175,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
-      
-       height: 4 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
       elevation: 8,
       zIndex: 1000,
       minWidth: 200,
@@ -5341,10 +5216,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 16,
       padding: 24,
       minWidth: 300,
-      
-       height: 8 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
       elevation: 12,
     },
 
@@ -5379,10 +5254,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingHorizontal: 20,
       borderRadius: 12,
       alignItems: 'center',
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
       elevation: 2,
     },
 
@@ -5617,10 +5492,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 8,
       borderWidth: 1,
       borderColor: colors.border,
-      
-       height: 2 },
-      
-      
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
       elevation: 5,
       zIndex: 1000,
     },
@@ -6062,7 +5937,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 12,
       overflow: 'hidden',
       elevation: 4,
-      boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.25)',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
     },
     mapPreview: {
       backgroundColor: colors.surface,
@@ -6122,10 +6000,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       width: '95%',
       maxWidth: 600,
       maxHeight: '90%',
-      
-       height: 8 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
       elevation: 16,
     },
     adminSettingsHeader: {
@@ -6175,10 +6053,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: 12,
-      
-       height: 2 },
-      
-      
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
       elevation: 4,
     },
     adminSaveButtonText: {
