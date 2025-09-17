@@ -13,10 +13,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
+
+// Mobile-First Responsive Design
+const { width: screenWidth } = Dimensions.get('window');
+const isMobile = screenWidth < 768;
 
 // Theme context import - we'll receive it as props
 
