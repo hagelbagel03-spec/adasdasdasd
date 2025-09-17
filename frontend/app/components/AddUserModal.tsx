@@ -512,7 +512,13 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
     return { strength: 3, text: 'Stark' };
   };
 
-  const passwordStrength = getPasswordStrength(formData.password);
+  // MOBILE OPTIMIZED: Debugging und korrektes Modal Rendering  
+  if (!visible) {
+    console.log('🔍 [DEBUG] Modal nicht sichtbar, returning null');
+    return null;
+  }
+
+  console.log('✅ [DEBUG] Modal wird gerendert!');
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
