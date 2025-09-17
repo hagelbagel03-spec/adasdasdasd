@@ -6622,6 +6622,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </TouchableOpacity>
 
           <TouchableOpacity 
+            style={[dynamicStyles.adminActionButton, { backgroundColor: colors.primary }]}
+            onPress={() => setActiveTab('team')}
+          >
+            <Ionicons name="people" size={20} color="#FFFFFF" />
+            <Text style={dynamicStyles.adminActionButtonText}>Team verwalten</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
             style={[dynamicStyles.adminActionButton, { backgroundColor: colors.warning }]}
             onPress={() => {
               Alert.alert(
@@ -6629,7 +6637,20 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                 'System neu starten? Dies kann einige Sekunden dauern.',
                 [
                   { text: 'Abbrechen', style: 'cancel' },
-                  { text: 'Neustart', onPress: () => window.location.reload() }
+                  { 
+                    text: 'Neustart', 
+                    onPress: () => {
+                      if (Platform.OS === 'web') {
+                        // @ts-ignore
+                        window.location.reload();
+                      } else {
+                        // Mobile: App restart nicht möglich, stattdessen zur Login-Seite
+                        setIsAuthenticated(false);
+                        setUser(null);
+                        setCurrentTab('incidents');
+                      }
+                    }
+                  }
                 ]
               );
             }}
