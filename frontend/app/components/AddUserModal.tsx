@@ -80,9 +80,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
     confirmPassword: '',
     role: 'officer',
     department: '',
-    team: '', // Team-Zuordnung hinzugefügt
     badge_number: '',
-    rank: '',
+    rank: '', // Dienstgrad als Texteingabe
     phone: '',
     photo: '' // base64 encoded profile photo
   });
