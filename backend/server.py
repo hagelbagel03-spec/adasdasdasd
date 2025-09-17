@@ -429,6 +429,7 @@ async def register_user(user_data: UserCreate):
         "role": user_data.role,
         "badge_number": user_data.badge_number,
         "department": user_data.department,
+        "team": user_data.team,  # Team-Zuordnung (Alpha, Bravo, etc.)
         "phone": user_data.phone,
         "service_number": user_data.service_number,
         "rank": user_data.rank,
