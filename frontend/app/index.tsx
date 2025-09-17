@@ -7244,8 +7244,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       return person.status === 'vermisst';
                     case 'gesucht':
                       return person.status === 'gesucht';
-                    case 'gefunden':
-                      return person.status === 'gefunden';
                     case 'erledigt':
                       return person.status === 'erledigt';
                     default:
