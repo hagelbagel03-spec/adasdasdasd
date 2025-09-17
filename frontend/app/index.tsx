@@ -28,7 +28,20 @@ import AddUserModal from './components/AddUserModal';
 import DiscordMessages from './components/DiscordMessages';
 import GoogleMapsView from './components/GoogleMapsView';
 
-const { width, height } = Dimensions.get('window');
+// Mobile-First Responsive Design mit besseren Breakpoints
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isMobile = screenWidth < 768;
+const isTablet = screenWidth >= 768 && screenWidth < 1024;
+const isDesktop = screenWidth >= 1024;
+
+// Mobile-optimierte Dimensionen
+const width = screenWidth || 390; // iPhone 12/13/14 width
+const height = screenHeight || 844; // iPhone 12/13/14 height
+
+// Mobile Touch-Targets (mindestens 44px für iOS, 48px für Android)
+const TOUCH_TARGET_SIZE = Platform.OS === 'ios' ? 44 : 48;
+const BUTTON_HEIGHT = Math.max(TOUCH_TARGET_SIZE, 50);
+const INPUT_HEIGHT = Math.max(TOUCH_TARGET_SIZE, 44);
 
 // Theme Context für Dark/Light Mode
 const ThemeContext = createContext();
