@@ -4052,7 +4052,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     },
     addButton: {
       padding: 12,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.secondary, // System-Farbe
       borderRadius: 12,
     },
 
