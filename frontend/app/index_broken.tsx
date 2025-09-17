@@ -132,13 +132,22 @@ const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(false); // LOADING DEAKTIVIERT FÜR SOFORTIGEN START
+  const [loading, setLoading] = useState(false); // LOADING VOLLSTÄNDIG DEAKTIVIERT
   
 const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
-    checkAuthState();
-    setupAxiosInterceptors();
+    // WEB-BUG FIX: Keine API-Calls für Web die die Seite überschreiben
+    if (Platform.OS !== 'web') {
+      checkAuthState();
+      setupAxiosInterceptors();
+    } else {
+      console.log('🌐 Web-Modus: API-Calls deaktiviert');
+      setIsAuthenticated(false);
+      setUser(null);
+      setToken(null);
+      setLoading(false);
+    }
   }, []);
 
   const setupAxiosInterceptors = () => {
@@ -705,7 +714,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       try {
         console.log('📍 Starte GPS-Standort-Ermittlung...');
         
-        // Request permissions using the already imported Location module
+        // Import Location dynamically to avoid issues
+        const Location = require('expo-location');
+        
+        // Request permissions
         console.log('📍 Fordere GPS-Berechtigung an...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
@@ -1471,14 +1483,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/persons/${personId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      Alert.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
+      window.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
       await loadPersons();
       await loadPersonStats();
       
     } catch (error) {
       console.error('❌ Person delete error:', error);
       // Web-kompatible Fehlermeldung
-      Alert.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
+      window.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1553,13 +1565,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/incidents/${incidentId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
       await loadAllIncidents();
       await loadData(); // Home-Statistiken aktualisieren
       
     } catch (error) {
       console.error('❌ Incident delete error:', error);
-      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
+      window.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1572,13 +1584,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('✅ Schließe Vorfall ab:', incidentId, incidentTitle);
       await axios.put(`${API_URL}/api/incidents/${incidentId}/complete`, {}, config);
       
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
       await loadAllIncidents();
       await loadData();
       
     } catch (error) {
       console.error('❌ Incident complete error:', error);
-      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
+      window.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1599,7 +1611,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.put(`${API_URL}/api/incidents/${incidentId}`, updateData, config);
       
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
       
       // Reload data to reflect changes
       await loadAllIncidents();
@@ -1628,7 +1640,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1655,7 +1667,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'open': 'OFFEN'
       }[newStatus] || newStatus.toUpperCase();
       
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload incidents
       await loadAllIncidents();
@@ -1684,7 +1696,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1897,7 +1909,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         secondary_color: ''
       });
       
-      Alert.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
+      window.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
       setShowAdminSettingsModal(false);
       
     } catch (error) {
@@ -1908,7 +1920,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       } else if (error.response?.data?.detail) {
         errorMsg = error.response.data.detail;
       }
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2049,7 +2061,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       setShowPersonDetailModal(false);
       
       // Show success message
-      Alert.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
+      window.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload persons data
       await loadPersons();
@@ -2070,7 +2082,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2095,17 +2107,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const submitIncident = async () => {
     // Validation
     if (!incidentFormData.title.trim()) {
-      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
+      window.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
       return;
     }
     
     if (!incidentFormData.description.trim()) {
-      Alert.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
+      window.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
       return;
     }
     
     if (!incidentFormData.location.trim()) {
-      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
+      window.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
       return;
     }
 
@@ -2134,7 +2146,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log('✅ Incident submitted successfully:', response.data);
       
-      Alert.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
+      window.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
       
       // Reset form
       setIncidentFormData({
@@ -2166,7 +2178,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMessage = JSON.stringify(error);
       }
       
-      Alert.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
+      window.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
     } finally {
       setSubmittingIncident(false);
     }
@@ -2199,7 +2211,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      Alert.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
+      window.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
       setPrivateMessage('');
       setShowPrivateMessageModal(false);
       
@@ -2208,7 +2220,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     } catch (error) {
       console.error('❌ Private message error:', error);
-      Alert.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
+      window.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2502,14 +2514,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      Alert.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
+      window.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
       setChatReply('');
       setShowChatModal(false);
       await loadRecentMessages(); // Reload messages
       
     } catch (error) {
       console.error('❌ Chat reply error:', error);
-      Alert.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
+      window.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2815,7 +2827,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
-      Alert.alert(`❌ Nachricht konnte nicht gesendet werden`);
+      window.alert(`❌ Nachricht konnte nicht gesendet werden`);
     }
   };
 
@@ -7330,7 +7342,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         onPress={(e) => {
                           e.stopPropagation();
                           // Web-kompatible Bestätigung
-                          if (Alert.alert(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
+                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
                             deletePerson(person.id, `${person.first_name} ${person.last_name}`);
                           }
                         }}
@@ -7469,7 +7481,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.success }]}
                       onPress={(e) => {
                         e.stopPropagation();
-                        if (Alert.alert(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
+                        if (window.confirm(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
                           completeIncident(incident.id, incident.title);
                         }
                       }}
@@ -7481,7 +7493,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.error }]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          if (Alert.alert(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
+                          if (window.confirm(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
                             deleteIncident(incident.id, incident.title);
                           }
                         }}
@@ -8927,7 +8939,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
-                        if (Alert.alert(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
+                        if (window.confirm(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
                           updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
                         }
                       }}
@@ -8944,7 +8956,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (Alert.alert(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
+                        if (window.confirm(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
                           updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
                         }
                       }}
@@ -9122,7 +9134,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (Alert.alert(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
+                        if (window.confirm(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
                           assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
                         }
                       }}
@@ -9139,7 +9151,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
                       onPress={() => {
-                        if (Alert.alert(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
+                        if (window.confirm(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
                           updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
                         }
                       }}
@@ -9155,7 +9167,7 @@ Beispielinhalt:
                   <TouchableOpacity
                     style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                     onPress={() => {
-                      if (Alert.alert(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
+                      if (window.confirm(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
                         completeIncident(selectedIncident.id, selectedIncident.title);
                         setShowIncidentDetailModal(false);
                       }
@@ -9171,7 +9183,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
                       onPress={() => {
-                        if (Alert.alert(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
+                        if (window.confirm(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
                           deleteIncident(selectedIncident.id, selectedIncident.title);
                           setShowIncidentDetailModal(false);
                         }
