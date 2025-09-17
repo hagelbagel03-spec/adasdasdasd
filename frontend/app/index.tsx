@@ -8793,7 +8793,7 @@ Beispielinhalt:
                         {
                           color: selectedPerson.status === 'vermisst' ? colors.warning :
                                  selectedPerson.status === 'gesucht' ? colors.error :
-                                 selectedPerson.status === 'gefunden' ? colors.success : colors.primary
+                                 colors.primary
                         }
                       ]}>
                         {selectedPerson.status === 'vermisst' ? '⚠️ Vermisst' :
