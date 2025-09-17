@@ -1471,7 +1471,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/persons/${personId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      window.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
+      Alert.alert('✅ Erfolg', `${personName} wurde erfolgreich archiviert!`);
       await loadPersons();
       await loadPersonStats();
       
