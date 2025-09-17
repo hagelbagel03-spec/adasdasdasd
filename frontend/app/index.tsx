@@ -698,10 +698,7 @@ const IncidentMapModal = ({ visible, onClose, incident }) => {
       padding: 20,
       borderRadius: 16,
       elevation: 4,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
+      boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.25)',
     },
     incidentTitle: {
       fontSize: 18,
