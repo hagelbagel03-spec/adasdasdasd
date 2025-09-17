@@ -1500,6 +1500,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   };
 
   const createNewPerson = () => {
+    console.log('🆕 DEBUG: createNewPerson aufgerufen');
     setEditingPerson(null);
     setPersonFormData({
       first_name: '',
@@ -1516,7 +1517,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       priority: 'medium',
       photo: ''
     });
+    console.log('🆕 DEBUG: Modal wird geöffnet...');
     setShowPersonModal(true);
+    console.log('🆕 DEBUG: showPersonModal gesetzt auf:', true);
   };
 
   const editPerson = (person) => {
