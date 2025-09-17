@@ -148,6 +148,13 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
   useEffect(() => {
     // Sofortiges Laden ohne Blockierung
     console.log('🚀 Stadtwache App starting...');
+    
+    // Loading nach maximal 5 Sekunden beenden
+    setTimeout(() => {
+      console.log('⏰ Force ending loading screen...');
+      setLoading(false);
+    }, 5000);
+    
     checkAuthState();
     setupAxiosInterceptors();
     console.log('✅ Stadtwache ready');
