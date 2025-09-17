@@ -561,11 +561,6 @@ const LoginScreen = ({ appConfig }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[colors.primary + '10', colors.background]}
-        style={styles.backgroundGradient}
-      />
-      
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView 
           contentContainerStyle={styles.content}
@@ -580,12 +575,9 @@ const LoginScreen = ({ appConfig }) => {
           >
             <View style={styles.logoContainer}>
               <View style={styles.logo}>
-                <LinearGradient
-                  colors={[colors.primary, colors.primaryDark]}
-                  style={styles.logoGradient}
-                >
-                  <Ionicons name="shield-checkmark" size={isSmallScreen ? 40 : 50} color="white" />
-                </LinearGradient>
+                <View style={styles.logoGradient}>
+                  <Ionicons name="shield-checkmark" size={isSmallScreen ? 40 : 50} color={colors.primary} />
+                </View>
               </View>
               <Text style={styles.title}>{appConfig.app_name}</Text>
               <Text style={styles.subtitle}>{appConfig.organization_name}</Text>
