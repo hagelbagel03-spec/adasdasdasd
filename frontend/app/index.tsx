@@ -1993,12 +1993,12 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       // Get current report data first
       const currentReport = reports.find(r => r.id === reportId) || selectedReport;
       
-      // Send complete report data with updated status
+      // TEMPORÄRER FIX: Status-Update über separaten Endpoint (falls verfügbar)
+      // oder als Kommentar im content
       const updateData = {
         title: currentReport?.title || reportTitle,
-        content: currentReport?.content || '',
-        shift_date: currentReport?.shift_date || new Date().toISOString().split('T')[0],
-        status: newStatus
+        content: `${currentReport?.content || ''}\n\n[Status: ${statusText[newStatus] || newStatus}]`,
+        shift_date: currentReport?.shift_date || new Date().toISOString().split('T')[0]
       };
       
       console.log('📊 Sending update data:', updateData);
