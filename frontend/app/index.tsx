@@ -172,15 +172,13 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
     const initializeApp = async () => {
       console.log('🚀 Initializing Stadtwache App...');
       
-      // App-Konfiguration laden (mit Fallback)
-      const config = await loadAppConfig();
-      console.log('📊 App initialized with config:', config.app_name);
-      
-      // Auth-Status prüfen
+      // Auth-Status direkt prüfen (ohne Config-Abhängigkeit)
       await checkAuthState();
       
-      // Setup axios interceptors after auth check
+      // Setup axios interceptors
       setupAxiosInterceptors();
+      
+      console.log('✅ Stadtwache App initialized successfully');
     };
     
     initializeApp();
