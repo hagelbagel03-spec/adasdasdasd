@@ -2119,14 +2119,19 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         headers: { Authorization: `Bearer ${token}` }
       } : {};
 
+      // FIXED: Use REAL GPS coordinates instead of hardcoded
       const incidentData = {
         title: incidentFormData.title.trim(),
         description: incidentFormData.description.trim(),
         priority: incidentFormData.priority,
-        location: {
-          lat: 51.2878,  // Default: Schwelm coordinates
+        location: incidentFormData.coordinates ? {
+          lat: incidentFormData.coordinates.lat,
+          lng: incidentFormData.coordinates.lng
+        } : {
+          lat: 51.2878,  // Fallback: Schwelm coordinates only if no GPS
           lng: 7.3372
         },
+        coordinates: incidentFormData.coordinates, // Real GPS coordinates
         address: incidentFormData.location.trim(),
         images: incidentFormData.photo ? [incidentFormData.photo] : []
       };
