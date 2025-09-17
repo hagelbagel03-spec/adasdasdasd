@@ -9163,27 +9163,31 @@ Beispielinhalt:
                   
                 {/* Auf Karte zeigen Button entfernt */}
 
-                  {/* Annehmen Button - falls Vorfall noch nicht zugewiesen ist */}
+                  {/* MOBILE OPTIMIZED: Annehmen Button - falls Vorfall noch nicht zugewiesen ist */}
                   {!selectedIncident.assigned_to && (
                     <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
-                      onPress={() => {
-                        Alert.alert(
-                          '👤 Vorfall annehmen',
-                          `"${selectedIncident.title}" annehmen und selbst bearbeiten?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Annehmen',
-                              onPress: () => assignIncidentToSelf(selectedIncident.id, selectedIncident.title)
-                            }
-                          ]
-                        );
+                      style={[dynamicStyles.actionButton, { 
+                        backgroundColor: colors.primary, 
+                        marginBottom: isSmallScreen ? 8 : 12,
+                        paddingVertical: isSmallScreen ? 12 : 16,
+                        minHeight: 48, // Mobile touch target
+                      }]}
+                      onPress={async () => {
+                        try {
+                          await assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
+                        } catch (error) {
+                          console.error('Accept incident error:', error);
+                          Alert.alert('Fehler', 'Vorfall konnte nicht angenommen werden.');
+                        }
                       }}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons name="person-add" size={20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
-                        👤 Vorfall annehmen
+                      <Ionicons name="person-add" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
+                      <Text style={[dynamicStyles.actionButtonText, { 
+                        color: '#FFFFFF',
+                        fontSize: isSmallScreen ? 14 : 16
+                      }]}>
+                        ✅ Vorfall annehmen
                       </Text>
                     </TouchableOpacity>
                   )}
