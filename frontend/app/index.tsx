@@ -9148,9 +9148,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
-                          assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
-                        }
+                        Alert.alert(
+                          '👤 Vorfall annehmen',
+                          `"${selectedIncident.title}" annehmen und selbst bearbeiten?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Annehmen',
+                              onPress: () => assignIncidentToSelf(selectedIncident.id, selectedIncident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="person-add" size={20} color="#FFFFFF" />
