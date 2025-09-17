@@ -496,7 +496,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
           <TouchableOpacity style={dynamicStyles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={dynamicStyles.headerTitle}>👤 Neuen Benutzer hinzufügen</Text>
+          <Text style={dynamicStyles.headerTitle}>👤 Benutzer hinzufügen</Text>
           <TouchableOpacity 
             style={[dynamicStyles.saveButton, loading && dynamicStyles.submitButtonDisabled]}
             onPress={handleSubmit}
