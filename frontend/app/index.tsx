@@ -7319,7 +7319,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                     ]}>
                       📊 Status: {person.status === 'vermisst' ? '⚠️ Vermisst' :
                                   person.status === 'gesucht' ? '🚨 Gesucht' :
-                                  person.status === 'gefunden' ? '✅ Gefunden' :
                                   '📋 ' + (person.status || 'Unbekannt')}
                     </Text>
                     {person.case_number && (
