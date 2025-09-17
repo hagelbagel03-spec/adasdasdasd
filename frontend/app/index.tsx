@@ -3487,10 +3487,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderLeftWidth: 4,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
+      
+       height: 2 },
+      
+      
       elevation: 4,
     },
     statContent: {
@@ -3537,10 +3537,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginTop: 24,
       borderRadius: 20,
       padding: 20,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
+      
+       height: 4 },
+      
+      
       elevation: 6,
     },
     cardHeader: {
@@ -3657,10 +3657,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderLeftColor: colors.primary,
       flexDirection: 'row',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 3,
     },
     personInfo: {
@@ -3897,10 +3897,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginHorizontal: 2,
       borderLeftWidth: 6,
       flexDirection: 'column',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 3,
     },
     incidentDetailTitle: {
@@ -3964,10 +3964,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 18,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
+      
+       height: 2 },
+      
+      
       elevation: 3,
     },
 
@@ -3984,10 +3984,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderColor: colors.border,
       paddingHorizontal: 16,
       paddingVertical: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 2,
     },
     searchIcon: {
@@ -4103,10 +4103,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderTopWidth: 1,
       borderTopColor: colors.border,
       elevation: 8,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
+      
+       height: -2 },
+      
+      
     },
     tabItem: {
       flex: 1,
@@ -4358,10 +4358,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderWidth: 1,
       borderColor: colors.border,
       gap: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 1 },
+      
+      
       elevation: 2,
     },
     quickLinkText: {
@@ -4413,10 +4413,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 20,
       marginHorizontal: 16,
       marginVertical: 8,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
+      
+       height: 4 },
+      
+      
       elevation: 4,
       borderWidth: 1,
       borderColor: colors.border,
@@ -4472,10 +4472,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 20,
       marginHorizontal: 16,
       marginVertical: 8,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
+      
+       height: 4 },
+      
+      
       elevation: 4,
       borderWidth: 1,
       borderColor: colors.border,
@@ -4591,10 +4591,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderWidth: 1,
       borderColor: colors.border,
       gap: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 1 },
+      
+      
       elevation: 2,
     },
     quickLinkText: {
@@ -4655,10 +4655,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingVertical: 18,
       borderRadius: 16,
       marginTop: 24,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      
+       height: 4 },
+      
+      
       elevation: 8,
     },
     submitButtonDisabled: {
@@ -4693,10 +4693,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 18,
       borderRadius: 16,
       marginBottom: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
+      
+       height: 2 },
+      
+      
       elevation: 4,
     },
     statusTitle: {
@@ -4722,10 +4722,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       padding: 20,
       borderRadius: 16,
       marginBottom: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
+      
+       height: 2 },
+      
+      
       elevation: 4,
     },
     officerInfo: {
@@ -4977,10 +4977,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       width: '100%',
       maxWidth: 400,
       maxHeight: '90%',
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
+      
+       height: 8 },
+      
+      
       elevation: 16,
     },
     modalHeader: {
@@ -5027,10 +5027,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingVertical: 16,
       borderRadius: 12,
       marginTop: 24,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      
+       height: 4 },
+      
+      
       elevation: 8,
     },
     registerButtonDisabled: {
@@ -5085,10 +5085,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 3,
     },
 
@@ -5116,10 +5116,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 2,
     },
 
@@ -5158,10 +5158,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginBottom: 12,
       padding: 12,
       borderRadius: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
+      
+       height: 1 },
+      
+      
       elevation: 1,
     },
 
@@ -5231,10 +5231,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderColor: colors.border,
       paddingHorizontal: 16,
       paddingVertical: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
+      
+       height: 1 },
+      
+      
       elevation: 1,
     },
 
@@ -5260,10 +5260,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     sendButtonActive: {
       backgroundColor: colors.primary,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 3,
     },
 
@@ -5300,10 +5300,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
+      
+       height: 4 },
+      
+      
       elevation: 8,
       zIndex: 1000,
       minWidth: 200,
@@ -5341,10 +5341,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 16,
       padding: 24,
       minWidth: 300,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.25,
-      shadowRadius: 16,
+      
+       height: 8 },
+      
+      
       elevation: 12,
     },
 
@@ -5379,10 +5379,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingHorizontal: 20,
       borderRadius: 12,
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 2,
     },
 
@@ -5617,10 +5617,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 8,
       borderWidth: 1,
       borderColor: colors.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 5,
       zIndex: 1000,
     },
@@ -6122,10 +6122,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       width: '95%',
       maxWidth: 600,
       maxHeight: '90%',
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
+      
+       height: 8 },
+      
+      
       elevation: 16,
     },
     adminSettingsHeader: {
@@ -6175,10 +6175,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
+      
+       height: 2 },
+      
+      
       elevation: 4,
     },
     adminSaveButtonText: {
