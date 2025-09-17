@@ -752,28 +752,47 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
               />
             </View>
 
-            {/* Team Selection */}
+            {/* Team Selection - MOBILE OPTIMIERT */}
             <View style={dynamicStyles.formGroup}>
               <Text style={dynamicStyles.formLabel}>👥 Team-Zuordnung</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={true}
+                style={{ 
+                  maxHeight: isMobile ? 120 : 80,
+                  minHeight: isMobile ? 60 : 50,
+                }}
+                contentContainerStyle={{ 
+                  flexDirection: 'row', 
+                  gap: 8, 
+                  paddingVertical: 8,
+                  paddingHorizontal: 4,
+                }}
+              >
                 {['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'].map((team) => (
                   <TouchableOpacity
                     key={team}
                     style={[
                       dynamicStyles.pickerButton,
-                      formData.team === team && dynamicStyles.pickerButtonActive
+                      formData.team === team && dynamicStyles.pickerButtonActive,
+                      {
+                        minWidth: isMobile ? 100 : 80,
+                        paddingHorizontal: isMobile ? 16 : 12,
+                        paddingVertical: isMobile ? 12 : 8,
+                      }
                     ]}
                     onPress={() => updateField('team', team)}
                   >
                     <Text style={[
                       dynamicStyles.pickerButtonText,
-                      formData.team === team && dynamicStyles.pickerButtonTextActive
+                      formData.team === team && dynamicStyles.pickerButtonTextActive,
+                      { fontSize: isMobile ? 16 : 14 }
                     ]}>
                       Team {team}
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             </View>
 
             <View style={dynamicStyles.formGroup}>
