@@ -8434,23 +8434,71 @@ Beispielinhalt:
                 }}
               >
                 
-                {/* Current Configuration Display */}
-                <View style={dynamicStyles.formGroup}>
-                  <Text style={dynamicStyles.formLabel}>📱 Aktuelle Konfiguration</Text>
-                  <View style={dynamicStyles.currentConfigContainer}>
-                    <Text style={dynamicStyles.configText}>📛 {appConfig.app_name}</Text>
-                    <Text style={dynamicStyles.configText}>📝 {appConfig.app_subtitle}</Text>
-                    <Text style={dynamicStyles.configText}>🏢 {appConfig.organization_name}</Text>
+                {/* MOBILE OPTIMIZED: Current Configuration Display */}
+                <View style={[
+                  dynamicStyles.formGroup,
+                  {
+                    marginBottom: isSmallScreen ? 16 : 20,
+                  }
+                ]}>
+                  <Text style={[
+                    dynamicStyles.formLabel,
+                    {
+                      fontSize: isSmallScreen ? 14 : 16,
+                      marginBottom: isSmallScreen ? 8 : 12,
+                    }
+                  ]}>📱 Aktuelle Konfiguration</Text>
+                  <View style={[
+                    dynamicStyles.currentConfigContainer,
+                    {
+                      paddingHorizontal: isSmallScreen ? 12 : 16,
+                      paddingVertical: isSmallScreen ? 10 : 12,
+                    }
+                  ]}>
+                    <Text style={[
+                      dynamicStyles.configText,
+                      { fontSize: isSmallScreen ? 13 : 14 }
+                    ]}>📛 {appConfig.app_name}</Text>
+                    <Text style={[
+                      dynamicStyles.configText,
+                      { fontSize: isSmallScreen ? 13 : 14 }
+                    ]}>📝 {appConfig.app_subtitle}</Text>
+                    <Text style={[
+                      dynamicStyles.configText,
+                      { fontSize: isSmallScreen ? 13 : 14 }
+                    ]}>🏢 {appConfig.organization_name}</Text>
                   </View>
                 </View>
 
-                {/* App Icon Upload */}
-                <View style={dynamicStyles.formGroup}>
-                  <Text style={dynamicStyles.formLabel}>🎨 App-Icon</Text>
-                  <View style={dynamicStyles.photoUploadContainer}>
+                {/* MOBILE OPTIMIZED: App Icon Upload */}
+                <View style={[
+                  dynamicStyles.formGroup,
+                  {
+                    marginBottom: isSmallScreen ? 16 : 20,
+                  }
+                ]}>
+                  <Text style={[
+                    dynamicStyles.formLabel,
+                    {
+                      fontSize: isSmallScreen ? 14 : 16,
+                      marginBottom: isSmallScreen ? 8 : 12,
+                    }
+                  ]}>🎨 App-Icon</Text>
+                  <View style={[
+                    dynamicStyles.photoUploadContainer,
+                    {
+                      minHeight: isSmallScreen ? 120 : 140,
+                    }
+                  ]}>
                     {adminSettingsData.app_icon ? (
                       <TouchableOpacity 
-                        style={dynamicStyles.iconPreview}
+                        style={[
+                          dynamicStyles.iconPreview,
+                          {
+                            width: isSmallScreen ? 80 : 100,
+                            height: isSmallScreen ? 80 : 100,
+                          }
+                        ]}
                         onPress={() => {
                           Alert.alert(
                             '🎨 App-Icon ändern',
@@ -8466,32 +8514,71 @@ Beispielinhalt:
                             ]
                           );
                         }}
+                        activeOpacity={0.8}
                       >
                         <Image 
                           source={{ uri: adminSettingsData.app_icon }} 
-                          style={dynamicStyles.iconPreviewImage}
+                          style={[
+                            dynamicStyles.iconPreviewImage,
+                            {
+                              width: isSmallScreen ? 80 : 100,
+                              height: isSmallScreen ? 80 : 100,
+                            }
+                          ]}
                         />
                         <View style={dynamicStyles.photoOverlay}>
-                          <Ionicons name="camera" size={20} color="#FFFFFF" />
+                          <Ionicons name="camera" size={isSmallScreen ? 16 : 20} color="#FFFFFF" />
                         </View>
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity 
-                        style={dynamicStyles.iconUploadButton}
+                        style={[
+                          dynamicStyles.iconUploadButton,
+                          {
+                            paddingVertical: isSmallScreen ? 20 : 24,
+                            minHeight: 44, // Mobile touch target
+                          }
+                        ]}
                         onPress={pickIconForApp}
+                        activeOpacity={0.8}
                       >
-                        <Ionicons name="image" size={32} color={colors.primary} />
-                        <Text style={dynamicStyles.iconUploadText}>App-Icon auswählen</Text>
+                        <Ionicons name="image" size={isSmallScreen ? 28 : 32} color={colors.primary} />
+                        <Text style={[
+                          dynamicStyles.iconUploadText,
+                          {
+                            fontSize: isSmallScreen ? 14 : 16,
+                            marginTop: isSmallScreen ? 6 : 8,
+                          }
+                        ]}>App-Icon auswählen</Text>
                       </TouchableOpacity>
                     )}
                   </View>
                 </View>
 
-                {/* App Name */}
-                <View style={dynamicStyles.formGroup}>
-                  <Text style={dynamicStyles.formLabel}>📛 App-Name</Text>
+                {/* MOBILE OPTIMIZED: App Name */}
+                <View style={[
+                  dynamicStyles.formGroup,
+                  {
+                    marginBottom: isSmallScreen ? 16 : 20,
+                  }
+                ]}>
+                  <Text style={[
+                    dynamicStyles.formLabel,
+                    {
+                      fontSize: isSmallScreen ? 14 : 16,
+                      marginBottom: isSmallScreen ? 6 : 8,
+                    }
+                  ]}>📛 App-Name</Text>
                   <TextInput
-                    style={dynamicStyles.formInput}
+                    style={[
+                      dynamicStyles.formInput,
+                      {
+                        fontSize: isSmallScreen ? 14 : 16,
+                        paddingHorizontal: isSmallScreen ? 12 : 16,
+                        paddingVertical: isSmallScreen ? 12 : 14,
+                        minHeight: 44, // Mobile touch target
+                      }
+                    ]}
                     value={adminSettingsData.app_name}
                     onChangeText={(text) => setAdminSettingsData(prev => ({...prev, app_name: text}))}
                     placeholder={appConfig.app_name}
@@ -8499,11 +8586,30 @@ Beispielinhalt:
                   />
                 </View>
 
-                {/* App Subtitle */}
-                <View style={dynamicStyles.formGroup}>
-                  <Text style={dynamicStyles.formLabel}>📝 App-Untertitel</Text>
+                {/* MOBILE OPTIMIZED: App Subtitle */}
+                <View style={[
+                  dynamicStyles.formGroup,
+                  {
+                    marginBottom: isSmallScreen ? 16 : 20,
+                  }
+                ]}>
+                  <Text style={[
+                    dynamicStyles.formLabel,
+                    {
+                      fontSize: isSmallScreen ? 14 : 16,
+                      marginBottom: isSmallScreen ? 6 : 8,
+                    }
+                  ]}>📝 App-Untertitel</Text>
                   <TextInput
-                    style={dynamicStyles.formInput}
+                    style={[
+                      dynamicStyles.formInput,
+                      {
+                        fontSize: isSmallScreen ? 14 : 16,
+                        paddingHorizontal: isSmallScreen ? 12 : 16,
+                        paddingVertical: isSmallScreen ? 12 : 14,
+                        minHeight: 44, // Mobile touch target
+                      }
+                    ]}
                     value={adminSettingsData.app_subtitle}
                     onChangeText={(text) => setAdminSettingsData(prev => ({...prev, app_subtitle: text}))}
                     placeholder={appConfig.app_subtitle}
@@ -8511,11 +8617,30 @@ Beispielinhalt:
                   />
                 </View>
 
-                {/* Organization Name */}
-                <View style={dynamicStyles.formGroup}>
-                  <Text style={dynamicStyles.formLabel}>🏢 Organisation</Text>
+                {/* MOBILE OPTIMIZED: Organization Name */}
+                <View style={[
+                  dynamicStyles.formGroup,
+                  {
+                    marginBottom: isSmallScreen ? 16 : 20,
+                  }
+                ]}>
+                  <Text style={[
+                    dynamicStyles.formLabel,
+                    {
+                      fontSize: isSmallScreen ? 14 : 16,
+                      marginBottom: isSmallScreen ? 6 : 8,
+                    }
+                  ]}>🏢 Organisation</Text>
                   <TextInput
-                    style={dynamicStyles.formInput}
+                    style={[
+                      dynamicStyles.formInput,
+                      {
+                        fontSize: isSmallScreen ? 14 : 16,
+                        paddingHorizontal: isSmallScreen ? 12 : 16,
+                        paddingVertical: isSmallScreen ? 12 : 14,
+                        minHeight: 44, // Mobile touch target
+                      }
+                    ]}
                     value={adminSettingsData.organization_name}
                     onChangeText={(text) => setAdminSettingsData(prev => ({...prev, organization_name: text}))}
                     placeholder={appConfig.organization_name}
