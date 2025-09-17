@@ -7264,7 +7264,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                     {
                       borderLeftColor: person.status === 'vermisst' ? colors.warning :
                                      person.status === 'gesucht' ? colors.error :
-                                     person.status === 'gefunden' ? colors.success : colors.primary
+                                     colors.primary
                     }
                   ]}
                   onPress={() => {
