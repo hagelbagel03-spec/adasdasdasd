@@ -63,20 +63,16 @@ const GoogleMapsView = ({ incident }: { incident: any }) => {
       window.open(url, '_blank');
     } else {
       // Mobile: Use Linking to open Google Maps app or browser
-      import('expo-linking').then((Linking) => {
-        const googleMapsUrl = Platform.OS === 'ios' 
-          ? `maps://maps.google.com/?q=${coordinates.lat},${coordinates.lng}`
-          : `geo:${coordinates.lat},${coordinates.lng}?q=${coordinates.lat},${coordinates.lng}`;
-        
-        // Try to open in native maps app first
-        Linking.default.openURL(googleMapsUrl).catch(() => {
-          // Fallback to web browser
-          Linking.default.openURL(url).catch(() => {
-            Alert.alert('Fehler', 'Google Maps konnte nicht geöffnet werden');
-          });
+      const googleMapsUrl = Platform.OS === 'ios' 
+        ? `maps://maps.google.com/?q=${coordinates.lat},${coordinates.lng}`
+        : `geo:${coordinates.lat},${coordinates.lng}?q=${coordinates.lat},${coordinates.lng}`;
+      
+      // Try to open in native maps app first
+      Linking.openURL(googleMapsUrl).catch(() => {
+        // Fallback to web browser
+        Linking.openURL(url).catch(() => {
+          Alert.alert('Fehler', 'Google Maps konnte nicht geöffnet werden');
         });
-      }).catch(() => {
-        Alert.alert('Fehler', 'Maps-Funktionalität nicht verfügbar');
       });
     }
   };
