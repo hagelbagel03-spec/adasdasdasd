@@ -28,11 +28,7 @@ import AddUserModal from './components/AddUserModal';
 import DiscordMessages from './components/DiscordMessages';
 import GoogleMapsView from './components/GoogleMapsView';
 
-// Mobile-first responsive design
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isSmallScreen = screenWidth < 400;
-const isMediumScreen = screenWidth >= 400 && screenWidth < 600;
-const isLargeScreen = screenWidth >= 600;
+const { width, height } = Dimensions.get('window');
 
 // Theme Context für Dark/Light Mode
 const ThemeContext = createContext();
@@ -138,7 +134,7 @@ const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   
-const BACKEND_BASE_URL = "http://localhost:8001";
+const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
     checkAuthState();
@@ -192,83 +188,61 @@ const BACKEND_BASE_URL = "http://localhost:8001";
   };
 
   const checkAuthState = async () => {
-    console.log('🔍 Starte Auth-Check...');
-    
-    // VEREINFACHT: Setze loading direkt auf false nach kurzem Timeout
-    setTimeout(() => {
-      console.log('✅ FORCE: Loading auf false gesetzt');
-      setLoading(false);
-    }, 3000); // Nach 3 Sekunden loading = false
-    
     try {
       // Versuche gespeicherten Token zu laden
       const savedToken = await AsyncStorage.getItem('stadtwache_token');
       const savedUser = await AsyncStorage.getItem('stadtwache_user');
       
-      console.log('🔍 Gespeicherte Daten:', { hasToken: !!savedToken, hasUser: !!savedUser });
-      
       if (savedToken && savedUser) {
-        console.log('🔐 Gespeicherte Login-Daten gefunden, setze User...');
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-      } else {
-        console.log('ℹ️ Keine gespeicherten Login-Daten gefunden');
+        console.log('🔐 Gespeicherte Login-Daten gefunden');
+        
+        // Validiere Token mit Backend
+        try {
+          const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${savedToken}` }
+          });
+          
+          console.log('✅ Token noch gültig, Auto-Login...');
+          setToken(savedToken);
+          setUser(JSON.parse(savedUser));
+          axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+          
+        } catch (error) {
+          console.log('❌ Token abgelaufen, lösche gespeicherte Daten');
+          await AsyncStorage.removeItem('stadtwache_token');
+          await AsyncStorage.removeItem('stadtwache_user');
+        }
       }
     } catch (error) {
       console.error('❌ Auto-Login Fehler:', error);
+    } finally {
+      // Kurze Verzögerung für bessere UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setLoading(false);
     }
   };
 
   const login = async (email, password) => {
-    console.log('🔐 Login-Versuch mit:', { email, password: '***' });
     try {
       const response = await axios.post(`${BACKEND_BASE_URL}/api/auth/login`, {
         email,
         password
       });
 
-      console.log('✅ Login-Response:', response.data);
-      
       const { access_token, user: userData } = response.data;
       
-      if (!access_token || !userData) {
-        console.error('❌ Unvollständige Login-Response:', response.data);
-        return {
-          success: false,
-          message: 'Unvollständige Server-Antwort'
-        };
-      }
-      
-      console.log('💾 Speichere Login-Daten...');
       setToken(access_token);
       setUser(userData);
       
-      // Speichere für Auto-Login
       await AsyncStorage.setItem('stadtwache_token', access_token);
       await AsyncStorage.setItem('stadtwache_user', JSON.stringify(userData));
       
-      // Setze Authorization Header
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      console.log('✅ Login erfolgreich, User:', userData);
-      
-      return {
-        success: true,
-        user: userData
-      };
-      
+      return { success: true };
     } catch (error) {
-      console.error('❌ Login-Fehler:', error);
-      console.error('❌ Login-Response:', error.response?.data);
-      
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.message || 
-                          'Server fehlgeschlagen. Bitte versuchen Sie es später erneut.';
-      
-      return {
-        success: false,
-        message: errorMessage
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'Verbindung zum Server fehlgeschlagen. Bitte versuchen Sie es später erneut.' 
       };
     }
   };
@@ -321,17 +295,12 @@ const LoginScreen = ({ appConfig }) => {
       return;
     }
 
-    console.log('🔐 handleLogin gestartet mit:', { email, password: '***' });
     setLoading(true);
     const result = await login(email, password);
     setLoading(false);
 
-    console.log('📱 Login-Result:', result);
-    
     if (!result.success) {
-      Alert.alert('Anmeldung fehlgeschlagen', result.message);
-    } else {
-      console.log('✅ Login erfolgreich, User sollte jetzt eingeloggt sein');
+      Alert.alert('Verbindungsfehler', result.error);
     }
   };
 
@@ -695,9 +664,6 @@ const IncidentMapModal = ({ visible, onClose, incident }) => {
 
 // Modern Main App
 const MainApp = ({ appConfig, setAppConfig }) => {
-  console.log('🚀 MainApp gestartet, User:', !!user);
-  console.log('🚀 MainApp appConfig:', appConfig);
-  
   const { user, updateUser, logout, token } = useAuth();
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('home');
@@ -739,7 +705,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       try {
         console.log('📍 Starte GPS-Standort-Ermittlung...');
         
-        // Request permissions using the already imported Location module
+        // Import Location dynamically to avoid issues
+        const Location = require('expo-location');
+        
+        // Request permissions
         console.log('📍 Fordere GPS-Berechtigung an...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
@@ -1505,14 +1474,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/persons/${personId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      Alert.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
+      window.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
       await loadPersons();
       await loadPersonStats();
       
     } catch (error) {
       console.error('❌ Person delete error:', error);
       // Web-kompatible Fehlermeldung
-      Alert.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
+      window.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1587,13 +1556,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/incidents/${incidentId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
       await loadAllIncidents();
       await loadData(); // Home-Statistiken aktualisieren
       
     } catch (error) {
       console.error('❌ Incident delete error:', error);
-      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
+      window.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1606,13 +1575,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('✅ Schließe Vorfall ab:', incidentId, incidentTitle);
       await axios.put(`${API_URL}/api/incidents/${incidentId}/complete`, {}, config);
       
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
       await loadAllIncidents();
       await loadData();
       
     } catch (error) {
       console.error('❌ Incident complete error:', error);
-      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
+      window.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1633,7 +1602,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.put(`${API_URL}/api/incidents/${incidentId}`, updateData, config);
       
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
       
       // Reload data to reflect changes
       await loadAllIncidents();
@@ -1662,7 +1631,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1689,7 +1658,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'open': 'OFFEN'
       }[newStatus] || newStatus.toUpperCase();
       
-      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
+      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload incidents
       await loadAllIncidents();
@@ -1718,7 +1687,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1931,7 +1900,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         secondary_color: ''
       });
       
-      Alert.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
+      window.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
       setShowAdminSettingsModal(false);
       
     } catch (error) {
@@ -1942,7 +1911,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       } else if (error.response?.data?.detail) {
         errorMsg = error.response.data.detail;
       }
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2083,7 +2052,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       setShowPersonDetailModal(false);
       
       // Show success message
-      Alert.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
+      window.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload persons data
       await loadPersons();
@@ -2104,7 +2073,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
+      window.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2129,17 +2098,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const submitIncident = async () => {
     // Validation
     if (!incidentFormData.title.trim()) {
-      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
+      window.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
       return;
     }
     
     if (!incidentFormData.description.trim()) {
-      Alert.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
+      window.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
       return;
     }
     
     if (!incidentFormData.location.trim()) {
-      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
+      window.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
       return;
     }
 
@@ -2168,7 +2137,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log('✅ Incident submitted successfully:', response.data);
       
-      Alert.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
+      window.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
       
       // Reset form
       setIncidentFormData({
@@ -2200,7 +2169,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMessage = JSON.stringify(error);
       }
       
-      Alert.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
+      window.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
     } finally {
       setSubmittingIncident(false);
     }
@@ -2233,7 +2202,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      Alert.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
+      window.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
       setPrivateMessage('');
       setShowPrivateMessageModal(false);
       
@@ -2242,7 +2211,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     } catch (error) {
       console.error('❌ Private message error:', error);
-      Alert.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
+      window.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2536,14 +2505,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      Alert.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
+      window.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
       setChatReply('');
       setShowChatModal(false);
       await loadRecentMessages(); // Reload messages
       
     } catch (error) {
       console.error('❌ Chat reply error:', error);
-      Alert.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
+      window.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2849,7 +2818,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
-      Alert.alert(`❌ Nachricht konnte nicht gesendet werden`);
+      window.alert(`❌ Nachricht konnte nicht gesendet werden`);
     }
   };
 
@@ -6578,11 +6547,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           
           <TouchableOpacity 
             style={[dynamicStyles.statCard, { borderLeftColor: colors.success }]}
-            onPress={() => {
-              console.log('🔍 [DEBUG] Admin Benutzer hinzufügen Button gedrückt');
-              setShowAddUserModal(true);
-              console.log('🔍 [DEBUG] showAddUserModal nach setzen:', true);
-            }}
+            onPress={() => setShowAddUserModal(true)}
             activeOpacity={0.7}
           >
             <View style={dynamicStyles.statContent}>
@@ -6708,11 +6673,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           {user?.role === 'admin' && (
             <TouchableOpacity 
               style={dynamicStyles.addButton}
-              onPress={() => {
-                console.log('🔍 [DEBUG] Team Benutzer hinzufügen Button gedrückt');
-                setShowAddUserModal(true);
-                console.log('🔍 [DEBUG] showAddUserModal nach setzen:', true);
-              }}
+              onPress={() => setShowAddUserModal(true)}
             >
               <Ionicons name="person-add" size={20} color="#FFFFFF" />
             </TouchableOpacity>
@@ -7372,18 +7333,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         onPress={(e) => {
                           e.stopPropagation();
                           // Web-kompatible Bestätigung
-                          Alert.alert(
-                            '🗑️ Person archivieren',
-                            `${person.first_name} ${person.last_name} wirklich archivieren?`,
-                            [
-                              { text: 'Abbrechen', style: 'cancel' },
-                              {
-                                text: 'Archivieren',
-                                style: 'destructive',
-                                onPress: () => deletePerson(person.id, `${person.first_name} ${person.last_name}`)
-                              }
-                            ]
-                          );
+                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
+                            deletePerson(person.id, `${person.first_name} ${person.last_name}`);
+                          }
                         }}
                       >
                         <Ionicons name="archive" size={16} color="#FFFFFF" />
@@ -7520,17 +7472,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.success }]}
                       onPress={(e) => {
                         e.stopPropagation();
-                        Alert.alert(
-                          '✅ Vorfall abschließen',
-                          `"${incident.title}" abschließen?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Abschließen',
-                              onPress: () => completeIncident(incident.id, incident.title)
-                            }
-                          ]
-                        );
+                        if (window.confirm(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
+                          completeIncident(incident.id, incident.title);
+                        }
                       }}
                     >
                       <Ionicons name="checkmark" size={16} color="#FFFFFF" />
@@ -7540,18 +7484,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.error }]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          Alert.alert(
-                            '🗑️ Vorfall löschen',
-                            `"${incident.title}" wirklich löschen?`,
-                            [
-                              { text: 'Abbrechen', style: 'cancel' },
-                              {
-                                text: 'Löschen',
-                                style: 'destructive',
-                                onPress: () => deleteIncident(incident.id, incident.title)
-                              }
-                            ]
-                          );
+                          if (window.confirm(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
+                            deleteIncident(incident.id, incident.title);
+                          }
                         }}
                       >
                         <Ionicons name="trash" size={16} color="#FFFFFF" />
@@ -8353,7 +8288,7 @@ Beispielinhalt:
         theme={{ colors, isDarkMode }}
       />
 
-      {/* MOBILE OPTIMIZED: Admin Settings Modal */}
+      {/* Admin Settings Modal */}
       <Modal
         visible={showAdminSettingsModal}
         transparent={true}
@@ -8365,178 +8300,53 @@ Beispielinhalt:
           style={{ flex: 1 }}
         >
           <View style={dynamicStyles.modalOverlay}>
-            <View style={[
-              dynamicStyles.modalContainer, 
-              dynamicStyles.adminSettingsContainer,
-              {
-                // Mobile responsive adjustments
-                marginHorizontal: isSmallScreen ? 10 : 20,
-                marginTop: isSmallScreen ? 40 : 60,
-                marginBottom: isSmallScreen ? 20 : 40,
-                maxHeight: screenHeight * 0.9,
-              }
-            ]}>
-              <View style={[
-                dynamicStyles.adminSettingsHeader,
-                {
-                  // Mobile header optimization
-                  paddingHorizontal: isSmallScreen ? 12 : 16,
-                  paddingVertical: isSmallScreen ? 12 : 16,
-                  flexDirection: isSmallScreen ? 'column' : 'row',
-                  alignItems: isSmallScreen ? 'stretch' : 'center',
-                }
-              ]}>
-                {/* Mobile optimized close button */}
+            <View style={[dynamicStyles.modalContainer, dynamicStyles.adminSettingsContainer]}>
+              <View style={dynamicStyles.adminSettingsHeader}>
                 <TouchableOpacity 
-                  style={[
-                    dynamicStyles.profileCloseButton,
-                    {
-                      alignSelf: 'flex-end',
-                      marginBottom: isSmallScreen ? 10 : 0,
-                    }
-                  ]}
+                  style={dynamicStyles.profileCloseButton}
                   onPress={() => setShowAdminSettingsModal(false)}
                 >
-                  <Ionicons name="close" size={isSmallScreen ? 20 : 24} color={colors.textMuted} />
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
                 </TouchableOpacity>
                 
-                <View style={[
-                  dynamicStyles.adminHeaderContent,
-                  {
-                    flex: 1,
-                    alignItems: isSmallScreen ? 'center' : 'flex-start',
-                    marginBottom: isSmallScreen ? 10 : 0,
-                  }
-                ]}>
-                  <View style={[
-                    dynamicStyles.adminIconContainer,
-                    {
-                      marginBottom: isSmallScreen ? 8 : 12,
-                    }
-                  ]}>
-                    <Ionicons name="settings" size={isSmallScreen ? 36 : 48} color={colors.primary} />
+                <View style={dynamicStyles.adminHeaderContent}>
+                  <View style={dynamicStyles.adminIconContainer}>
+                    <Ionicons name="settings" size={48} color={colors.primary} />
                   </View>
                   <View style={dynamicStyles.adminTitleContainer}>
-                    <Text style={[
-                      dynamicStyles.adminModalTitle,
-                      {
-                        fontSize: isSmallScreen ? 18 : 22,
-                        textAlign: isSmallScreen ? 'center' : 'left',
-                      }
-                    ]}>Admin Einstellungen</Text>
-                    <Text style={[
-                      dynamicStyles.adminModalSubtitle,
-                      {
-                        fontSize: isSmallScreen ? 12 : 14,
-                        textAlign: isSmallScreen ? 'center' : 'left',
-                      }
-                    ]}>App-Konfiguration verwalten</Text>
+                    <Text style={dynamicStyles.adminModalTitle}>Admin Einstellungen</Text>
+                    <Text style={dynamicStyles.adminModalSubtitle}>App-Konfiguration verwalten</Text>
                   </View>
                 </View>
                 
-                {/* Mobile optimized save button */}
                 <TouchableOpacity 
-                  style={[
-                    dynamicStyles.adminSaveButton,
-                    {
-                      paddingHorizontal: isSmallScreen ? 16 : 20,
-                      paddingVertical: isSmallScreen ? 10 : 12,
-                      minHeight: 44, // Mobile touch target
-                      width: isSmallScreen ? '100%' : 'auto',
-                    }
-                  ]}
+                  style={dynamicStyles.adminSaveButton}
                   onPress={saveAdminSettings}
-                  activeOpacity={0.8}
                 >
-                  <Ionicons name="checkmark" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
-                  <Text style={[
-                    dynamicStyles.adminSaveButtonText,
-                    {
-                      fontSize: isSmallScreen ? 14 : 16,
-                      marginLeft: 6,
-                    }
-                  ]}>Speichern</Text>
+                  <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                  <Text style={dynamicStyles.adminSaveButtonText}>Speichern</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView 
-                style={[
-                  dynamicStyles.modalContent,
-                  {
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                  }
-                ]} 
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingBottom: isSmallScreen ? 20 : 40,
-                }}
-              >
+              <ScrollView style={dynamicStyles.modalContent} showsVerticalScrollIndicator={false}>
                 
-                {/* MOBILE OPTIMIZED: Current Configuration Display */}
-                <View style={[
-                  dynamicStyles.formGroup,
-                  {
-                    marginBottom: isSmallScreen ? 16 : 20,
-                  }
-                ]}>
-                  <Text style={[
-                    dynamicStyles.formLabel,
-                    {
-                      fontSize: isSmallScreen ? 14 : 16,
-                      marginBottom: isSmallScreen ? 8 : 12,
-                    }
-                  ]}>📱 Aktuelle Konfiguration</Text>
-                  <View style={[
-                    dynamicStyles.currentConfigContainer,
-                    {
-                      paddingHorizontal: isSmallScreen ? 12 : 16,
-                      paddingVertical: isSmallScreen ? 10 : 12,
-                    }
-                  ]}>
-                    <Text style={[
-                      dynamicStyles.configText,
-                      { fontSize: isSmallScreen ? 13 : 14 }
-                    ]}>📛 {appConfig.app_name}</Text>
-                    <Text style={[
-                      dynamicStyles.configText,
-                      { fontSize: isSmallScreen ? 13 : 14 }
-                    ]}>📝 {appConfig.app_subtitle}</Text>
-                    <Text style={[
-                      dynamicStyles.configText,
-                      { fontSize: isSmallScreen ? 13 : 14 }
-                    ]}>🏢 {appConfig.organization_name}</Text>
+                {/* Current Configuration Display */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>📱 Aktuelle Konfiguration</Text>
+                  <View style={dynamicStyles.currentConfigContainer}>
+                    <Text style={dynamicStyles.configText}>📛 {appConfig.app_name}</Text>
+                    <Text style={dynamicStyles.configText}>📝 {appConfig.app_subtitle}</Text>
+                    <Text style={dynamicStyles.configText}>🏢 {appConfig.organization_name}</Text>
                   </View>
                 </View>
 
-                {/* MOBILE OPTIMIZED: App Icon Upload */}
-                <View style={[
-                  dynamicStyles.formGroup,
-                  {
-                    marginBottom: isSmallScreen ? 16 : 20,
-                  }
-                ]}>
-                  <Text style={[
-                    dynamicStyles.formLabel,
-                    {
-                      fontSize: isSmallScreen ? 14 : 16,
-                      marginBottom: isSmallScreen ? 8 : 12,
-                    }
-                  ]}>🎨 App-Icon</Text>
-                  <View style={[
-                    dynamicStyles.photoUploadContainer,
-                    {
-                      minHeight: isSmallScreen ? 120 : 140,
-                    }
-                  ]}>
+                {/* App Icon Upload */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>🎨 App-Icon</Text>
+                  <View style={dynamicStyles.photoUploadContainer}>
                     {adminSettingsData.app_icon ? (
                       <TouchableOpacity 
-                        style={[
-                          dynamicStyles.iconPreview,
-                          {
-                            width: isSmallScreen ? 80 : 100,
-                            height: isSmallScreen ? 80 : 100,
-                          }
-                        ]}
+                        style={dynamicStyles.iconPreview}
                         onPress={() => {
                           Alert.alert(
                             '🎨 App-Icon ändern',
@@ -8552,71 +8362,32 @@ Beispielinhalt:
                             ]
                           );
                         }}
-                        activeOpacity={0.8}
                       >
                         <Image 
                           source={{ uri: adminSettingsData.app_icon }} 
-                          style={[
-                            dynamicStyles.iconPreviewImage,
-                            {
-                              width: isSmallScreen ? 80 : 100,
-                              height: isSmallScreen ? 80 : 100,
-                            }
-                          ]}
+                          style={dynamicStyles.iconPreviewImage}
                         />
                         <View style={dynamicStyles.photoOverlay}>
-                          <Ionicons name="camera" size={isSmallScreen ? 16 : 20} color="#FFFFFF" />
+                          <Ionicons name="camera" size={20} color="#FFFFFF" />
                         </View>
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity 
-                        style={[
-                          dynamicStyles.iconUploadButton,
-                          {
-                            paddingVertical: isSmallScreen ? 20 : 24,
-                            minHeight: 44, // Mobile touch target
-                          }
-                        ]}
+                        style={dynamicStyles.iconUploadButton}
                         onPress={pickIconForApp}
-                        activeOpacity={0.8}
                       >
-                        <Ionicons name="image" size={isSmallScreen ? 28 : 32} color={colors.primary} />
-                        <Text style={[
-                          dynamicStyles.iconUploadText,
-                          {
-                            fontSize: isSmallScreen ? 14 : 16,
-                            marginTop: isSmallScreen ? 6 : 8,
-                          }
-                        ]}>App-Icon auswählen</Text>
+                        <Ionicons name="image" size={32} color={colors.primary} />
+                        <Text style={dynamicStyles.iconUploadText}>App-Icon auswählen</Text>
                       </TouchableOpacity>
                     )}
                   </View>
                 </View>
 
-                {/* MOBILE OPTIMIZED: App Name */}
-                <View style={[
-                  dynamicStyles.formGroup,
-                  {
-                    marginBottom: isSmallScreen ? 16 : 20,
-                  }
-                ]}>
-                  <Text style={[
-                    dynamicStyles.formLabel,
-                    {
-                      fontSize: isSmallScreen ? 14 : 16,
-                      marginBottom: isSmallScreen ? 6 : 8,
-                    }
-                  ]}>📛 App-Name</Text>
+                {/* App Name */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>📛 App-Name</Text>
                   <TextInput
-                    style={[
-                      dynamicStyles.formInput,
-                      {
-                        fontSize: isSmallScreen ? 14 : 16,
-                        paddingHorizontal: isSmallScreen ? 12 : 16,
-                        paddingVertical: isSmallScreen ? 12 : 14,
-                        minHeight: 44, // Mobile touch target
-                      }
-                    ]}
+                    style={dynamicStyles.formInput}
                     value={adminSettingsData.app_name}
                     onChangeText={(text) => setAdminSettingsData(prev => ({...prev, app_name: text}))}
                     placeholder={appConfig.app_name}
@@ -8624,30 +8395,11 @@ Beispielinhalt:
                   />
                 </View>
 
-                {/* MOBILE OPTIMIZED: App Subtitle */}
-                <View style={[
-                  dynamicStyles.formGroup,
-                  {
-                    marginBottom: isSmallScreen ? 16 : 20,
-                  }
-                ]}>
-                  <Text style={[
-                    dynamicStyles.formLabel,
-                    {
-                      fontSize: isSmallScreen ? 14 : 16,
-                      marginBottom: isSmallScreen ? 6 : 8,
-                    }
-                  ]}>📝 App-Untertitel</Text>
+                {/* App Subtitle */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>📝 App-Untertitel</Text>
                   <TextInput
-                    style={[
-                      dynamicStyles.formInput,
-                      {
-                        fontSize: isSmallScreen ? 14 : 16,
-                        paddingHorizontal: isSmallScreen ? 12 : 16,
-                        paddingVertical: isSmallScreen ? 12 : 14,
-                        minHeight: 44, // Mobile touch target
-                      }
-                    ]}
+                    style={dynamicStyles.formInput}
                     value={adminSettingsData.app_subtitle}
                     onChangeText={(text) => setAdminSettingsData(prev => ({...prev, app_subtitle: text}))}
                     placeholder={appConfig.app_subtitle}
@@ -8655,30 +8407,11 @@ Beispielinhalt:
                   />
                 </View>
 
-                {/* MOBILE OPTIMIZED: Organization Name */}
-                <View style={[
-                  dynamicStyles.formGroup,
-                  {
-                    marginBottom: isSmallScreen ? 16 : 20,
-                  }
-                ]}>
-                  <Text style={[
-                    dynamicStyles.formLabel,
-                    {
-                      fontSize: isSmallScreen ? 14 : 16,
-                      marginBottom: isSmallScreen ? 6 : 8,
-                    }
-                  ]}>🏢 Organisation</Text>
+                {/* Organization Name */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>🏢 Organisation</Text>
                   <TextInput
-                    style={[
-                      dynamicStyles.formInput,
-                      {
-                        fontSize: isSmallScreen ? 14 : 16,
-                        paddingHorizontal: isSmallScreen ? 12 : 16,
-                        paddingVertical: isSmallScreen ? 12 : 14,
-                        minHeight: 44, // Mobile touch target
-                      }
-                    ]}
+                    style={dynamicStyles.formInput}
                     value={adminSettingsData.organization_name}
                     onChangeText={(text) => setAdminSettingsData(prev => ({...prev, organization_name: text}))}
                     placeholder={appConfig.organization_name}
@@ -9197,17 +8930,9 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
-                        Alert.alert(
-                          '✅ Person erledigt',
-                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Erledigt',
-                              onPress: () => updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`)
-                            }
-                          ]
-                        );
+                        if (window.confirm(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
+                          updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
+                        }
                       }}
                     >
                       <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
@@ -9222,17 +8947,9 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        Alert.alert(
-                          '✅ Person gefunden',
-                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Gefunden',
-                              onPress: () => updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`)
-                            }
-                          ]
-                        );
+                        if (window.confirm(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
+                          updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
+                        }
                       }}
                     >
                       <Ionicons name="location" size={20} color="#FFFFFF" />
@@ -9403,129 +9120,68 @@ Beispielinhalt:
                   
                 {/* Auf Karte zeigen Button entfernt */}
 
-                  {/* MOBILE OPTIMIZED: Annehmen Button - falls Vorfall noch nicht zugewiesen ist */}
+                  {/* Annehmen Button - falls Vorfall noch nicht zugewiesen ist */}
                   {!selectedIncident.assigned_to && (
                     <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { 
-                        backgroundColor: colors.primary, 
-                        marginBottom: isSmallScreen ? 8 : 12,
-                        paddingVertical: isSmallScreen ? 12 : 16,
-                        minHeight: 48, // Mobile touch target
-                      }]}
-                      onPress={async () => {
-                        try {
-                          await assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
-                        } catch (error) {
-                          console.error('Accept incident error:', error);
-                          Alert.alert('Fehler', 'Vorfall konnte nicht angenommen werden.');
+                      style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
+                      onPress={() => {
+                        if (window.confirm(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
+                          assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
                         }
                       }}
-                      activeOpacity={0.8}
                     >
-                      <Ionicons name="person-add" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { 
-                        color: '#FFFFFF',
-                        fontSize: isSmallScreen ? 14 : 16
-                      }]}>
-                        ✅ Vorfall annehmen
+                      <Ionicons name="person-add" size={20} color="#FFFFFF" />
+                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
+                        👤 Vorfall annehmen
                       </Text>
                     </TouchableOpacity>
                   )}
 
-                  {/* MOBILE OPTIMIZED: In Bearbeitung Button - Incident auf in_progress setzen */}
+                  {/* In Bearbeitung Button - Incident auf in_progress setzen */}
                   {selectedIncident.status !== 'in_progress' && (
                     <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { 
-                        backgroundColor: colors.warning, 
-                        marginBottom: isSmallScreen ? 8 : 12,
-                        paddingVertical: isSmallScreen ? 12 : 16,
-                        minHeight: 48, // Mobile touch target
-                      }]}
-                      onPress={async () => {
-                        try {
-                          await updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
-                        } catch (error) {
-                          console.error('Update status error:', error);
-                          Alert.alert('Fehler', 'Status konnte nicht aktualisiert werden.');
+                      style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
+                      onPress={() => {
+                        if (window.confirm(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
+                          updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
                         }
                       }}
-                      activeOpacity={0.8}
                     >
-                      <Ionicons name="time" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { 
-                        color: '#FFFFFF',
-                        fontSize: isSmallScreen ? 14 : 16
-                      }]}>
-                        ⚡ IN BEARBEITUNG
+                      <Ionicons name="cog" size={20} color="#FFFFFF" />
+                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
+                        ⚙️ IN BEARBEITUNG
                       </Text>
                     </TouchableOpacity>
                   )}
 
-                  {/* MOBILE OPTIMIZED: Abschließen Button */}
+                  {/* Abschließen Button */}
                   <TouchableOpacity
-                    style={[dynamicStyles.actionButton, { 
-                      backgroundColor: colors.success, 
-                      marginBottom: isSmallScreen ? 8 : 12,
-                      paddingVertical: isSmallScreen ? 12 : 16,
-                      minHeight: 48, // Mobile touch target
-                    }]}
-                    onPress={async () => {
-                      try {
-                        await completeIncident(selectedIncident.id, selectedIncident.title);
+                    style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
+                    onPress={() => {
+                      if (window.confirm(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
+                        completeIncident(selectedIncident.id, selectedIncident.title);
                         setShowIncidentDetailModal(false);
-                      } catch (error) {
-                        console.error('Complete incident error:', error);
-                        Alert.alert('Fehler', 'Vorfall konnte nicht abgeschlossen werden.');
                       }
                     }}
-                    activeOpacity={0.8}
                   >
-                    <Ionicons name="checkmark-done" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
-                    <Text style={[dynamicStyles.actionButtonText, { 
-                      color: '#FFFFFF',
-                      fontSize: isSmallScreen ? 14 : 16
-                    }]}>
+                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                    <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
                       ✅ ABGESCHLOSSEN
                     </Text>
                   </TouchableOpacity>
 
-                  {/* MOBILE OPTIMIZED: Löschen Button (nur Admin) */}
                   {user?.role === 'admin' && (
                     <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { 
-                        backgroundColor: colors.error,
-                        paddingVertical: isSmallScreen ? 12 : 16,
-                        minHeight: 48, // Mobile touch target
-                      }]}
-                      onPress={async () => {
-                        Alert.alert(
-                          '🗑️ Vorfall löschen',
-                          `"${selectedIncident.title}" wirklich löschen?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Löschen',
-                              style: 'destructive',
-                              onPress: async () => {
-                                try {
-                                  await deleteIncident(selectedIncident.id, selectedIncident.title);
-                                  setShowIncidentDetailModal(false);
-                                } catch (error) {
-                                  console.error('Delete incident error:', error);
-                                  Alert.alert('Fehler', 'Vorfall konnte nicht gelöscht werden.');
-                                }
-                              }
-                            }
-                          ]
-                        );
+                      style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
+                      onPress={() => {
+                        if (window.confirm(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
+                          deleteIncident(selectedIncident.id, selectedIncident.title);
+                          setShowIncidentDetailModal(false);
+                        }
                       }}
-                      activeOpacity={0.8}
                     >
-                      <Ionicons name="trash" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { 
-                        color: '#FFFFFF',
-                        fontSize: isSmallScreen ? 14 : 16
-                      }]}>
+                      <Ionicons name="trash" size={20} color="#FFFFFF" />
+                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
                         🗑️ Vorfall löschen
                       </Text>
                     </TouchableOpacity>
@@ -9995,9 +9651,8 @@ Beispielinhalt:
                     </Text>
                   </View>
                   <View style={dynamicStyles.incidentActions}>
-                    {/* MOBILE OPTIMIZED: Nur Details-Button - Karten-Button entfernt */}
                     <TouchableOpacity 
-                      style={[dynamicStyles.mapButton, { backgroundColor: colors.primary }]}
+                      style={[dynamicStyles.mapButton, { backgroundColor: colors.secondary }]}
                       onPress={(e) => {
                         e.stopPropagation();
                         setSelectedIncident(incident);
@@ -10008,7 +9663,7 @@ Beispielinhalt:
                         }, 100);
                       }}
                     >
-                      <Ionicons name="information-circle" size={18} color="#FFFFFF" />
+                      <Ionicons name="eye" size={18} color="#FFFFFF" />
                     </TouchableOpacity>
                     <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
                   </View>
@@ -10272,8 +9927,6 @@ export default function App() {
 const AppContent = () => {
   const { user, loading } = useAuth();
   const { colors } = useTheme();
-  
-  console.log('🏠 AppContent - loading:', loading, 'user:', !!user);
   
   // App Configuration States
   const [appConfig, setAppConfig] = useState({

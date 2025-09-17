@@ -83,7 +83,6 @@ class User(BaseModel):
     role: str
     badge_number: Optional[str] = None
     department: Optional[str] = None
-    team: Optional[str] = None  # Team-Zuordnung (Alpha, Bravo, etc.)
     phone: Optional[str] = None
     service_number: Optional[str] = None
     rank: Optional[str] = None
@@ -100,7 +99,6 @@ class UserCreate(BaseModel):
     role: Optional[str] = UserRole.POLICE  # Default role
     badge_number: Optional[str] = None
     department: Optional[str] = None
-    team: Optional[str] = None  # Team-Zuordnung (Alpha, Bravo, etc.)
     phone: Optional[str] = None
     service_number: Optional[str] = None
     rank: Optional[str] = None
@@ -112,7 +110,6 @@ class UserUpdate(BaseModel):
     service_number: Optional[str] = None
     rank: Optional[str] = None
     department: Optional[str] = None
-    team: Optional[str] = None  # Team-Zuordnung (Alpha, Bravo, etc.)
     status: Optional[str] = None
     photo: Optional[str] = None
 
@@ -429,7 +426,6 @@ async def register_user(user_data: UserCreate):
         "role": user_data.role,
         "badge_number": user_data.badge_number,
         "department": user_data.department,
-        "team": user_data.team,  # Team-Zuordnung (Alpha, Bravo, etc.)
         "phone": user_data.phone,
         "service_number": user_data.service_number,
         "rank": user_data.rank,
@@ -552,7 +548,6 @@ async def get_users_by_status(current_user: User = Depends(get_current_user)):
             "service_number": user_doc.get("service_number"),
             "rank": user_doc.get("rank"),
             "department": user_doc.get("department"),
-            "team": user_doc.get("team"),  # Team-Zuordnung (Alpha, Bravo, etc.)
             "status": user_status,
             "is_online": is_online,
             "online_status": "Online" if is_online else "Offline",

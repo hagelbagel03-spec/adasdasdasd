@@ -1,4 +1,4 @@
-import React, { useState, useContext, createContext } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -13,19 +13,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 
-// Mobile-First Responsive Design
-const { width: screenWidth } = Dimensions.get('window');
-const isMobile = screenWidth < 768;
-const isSmallScreen = screenWidth < 400;
-
-// Create a default theme context for fallback
-const ThemeContext = createContext(null);
+// Theme context import - we'll receive it as props
 
 const useTheme = () => {
   const context = useContext(ThemeContext);
@@ -60,8 +53,6 @@ interface AddUserModalProps {
 }
 
 const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdded, token, theme }) => {
-  console.log('🔍 [DEBUG] AddUserModal rendered with visible:', visible);
-  console.log('🔍 [DEBUG] AddUserModal props:', { visible, token: !!token, theme: !!theme });
   const colors = theme?.colors || {
     primary: '#1E3A8A',
     background: '#F3F4F6',
@@ -80,17 +71,16 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
     confirmPassword: '',
     role: 'officer',
     department: '',
+    team: '', // Team-Zuordnung hinzugefügt
     badge_number: '',
-    rank: '', // Dienstgrad als Texteingabe
+    rank: '',
     phone: '',
     photo: '' // base64 encoded profile photo
   });
   const [loading, setLoading] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
-  
-  const passwordStrength = getPasswordStrength(formData.password);
 
-  const BACKEND_URL = "http://212.227.57.238:8001/api";
+  const API_URL = "http://212.227.57.238:8001";
 
   // Image picker functions for user profile photos
   const pickImageForUser = async () => {
@@ -156,6 +146,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       confirmPassword: '',
       role: 'officer',
       department: '',
+      team: '',
       badge_number: '',
       rank: '',
       phone: '',
@@ -169,49 +160,33 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
   };
 
   const validateForm = () => {
-    console.log('🔍 [DEBUG] Validation started');
-    console.log('🔍 [DEBUG] FormData für Validation:', formData);
-    
     if (!formData.email || !formData.username || !formData.password) {
-      console.log('❌ [DEBUG] Pflichtfelder fehlen');
       Alert.alert('⚠️ Fehler', 'Bitte füllen Sie alle Pflichtfelder aus');
       return false;
     }
 
     if (formData.password.length < 6) {
-      console.log('❌ [DEBUG] Passwort zu kurz');
       Alert.alert('⚠️ Fehler', 'Passwort muss mindestens 6 Zeichen lang sein');
       return false;
     }
 
-    // TEMPORÄR DEAKTIVIERT für Debug
-    // if (formData.password !== formData.confirmPassword) {
-    //   console.log('❌ [DEBUG] Passwörter stimmen nicht überein');
-    //   Alert.alert('⚠️ Fehler', 'Passwörter stimmen nicht überein');
-    //   return false;
-    // }
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert('⚠️ Fehler', 'Passwörter stimmen nicht überein');
+      return false;
+    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      console.log('❌ [DEBUG] Email ungültig');
       Alert.alert('⚠️ Fehler', 'Bitte geben Sie eine gültige E-Mail-Adresse ein');
       return false;
     }
 
-    console.log('✅ [DEBUG] Validation erfolgreich');
     return true;
   };
 
   const handleSubmit = async () => {
-    console.log('🆕 [DEBUG] handleSubmit gestartet');
-    console.log('🆕 [DEBUG] FormData:', formData);
-    
-    if (!validateForm()) {
-      console.log('❌ [DEBUG] Validation fehlgeschlagen');
-      return;
-    }
-    
-    console.log('✅ [DEBUG] Validation erfolgreich');
+    if (!validateForm()) return;
+
     setLoading(true);
 
     try {
@@ -225,14 +200,15 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
         password: formData.password,
         role: formData.role,
         department: formData.department || null,
+        team: formData.team || null,
         badge_number: formData.badge_number || null,
-        rank: formData.rank || null,  // Dienstgrad wird jetzt übertragen
+        rank: formData.rank || null,
         phone: formData.phone || null
       };
 
       console.log('👤 Creating user:', userData);
 
-      const response = await axios.post(`${BACKEND_URL}/auth/register`, userData, config);
+      const response = await axios.post(`${API_URL}/api/auth/register`, userData, config);
       
       console.log('✅ User created successfully:', response.data);
 
@@ -308,7 +284,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       borderRadius: 12,
     },
     saveButton: {
-      backgroundColor: colors.secondary, // System-Farbe statt primary
+      backgroundColor: colors.primary,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 12,
@@ -397,7 +373,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.secondary, // System-Farbe statt primary
+      backgroundColor: colors.primary,
       paddingVertical: 18,
       borderRadius: 16,
       marginTop: 24,
@@ -502,28 +478,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       borderRadius: 15,
       padding: 6,
     },
-    pickerButton: {
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    pickerButtonActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    pickerButtonText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    pickerButtonTextActive: {
-      color: '#FFFFFF',
-    },
   });
 
   const getPasswordStrength = (password: string) => {
@@ -533,469 +487,297 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
     return { strength: 3, text: 'Stark' };
   };
 
-  // MOBILE OPTIMIZED: Debugging und korrektes Modal Rendering  
-  if (!visible) {
-    console.log('🔍 [DEBUG] Modal nicht sichtbar, returning null');
-    return null;
-  }
-
-  console.log('✅ [DEBUG] Modal wird gerendert!');
+  const passwordStrength = getPasswordStrength(formData.password);
 
   return (
-    <Modal 
-      visible={visible} 
-      animationType="slide" 
-      onRequestClose={handleClose}
-      presentationStyle="pageSheet"
-    >
-      <SafeAreaView style={{
-        flex: 1,
-        backgroundColor: colors.background,
-      }}>
-        {/* MOBILE OPTIMIZED HEADER */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: isSmallScreen ? 16 : 20,
-          paddingVertical: isSmallScreen ? 12 : 16,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 4,
-        }}>
-          <TouchableOpacity 
-            onPress={handleClose}
-            style={{
-              padding: 8,
-              borderRadius: 8,
-              backgroundColor: colors.border,
-            }}
-          >
-            <Ionicons name="close" size={isSmallScreen ? 22 : 24} color={colors.text} />
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+      <SafeAreaView style={dynamicStyles.container}>
+        <View style={dynamicStyles.header}>
+          <TouchableOpacity style={dynamicStyles.closeButton} onPress={handleClose}>
+            <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
-          
-          <Text style={{
-            fontSize: isSmallScreen ? 18 : 20,
-            fontWeight: 'bold',
-            color: colors.text,
-            flex: 1,
-            textAlign: 'center',
-            marginHorizontal: 16,
-          }}>
-            👤 Benutzer hinzufügen
-          </Text>
-          
+          <Text style={dynamicStyles.headerTitle}>👤 Neuen Benutzer hinzufügen</Text>
           <TouchableOpacity 
+            style={[dynamicStyles.saveButton, loading && dynamicStyles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
-            style={{
-              backgroundColor: loading ? colors.border : colors.success,
-              paddingHorizontal: isSmallScreen ? 12 : 16,
-              paddingVertical: isSmallScreen ? 8 : 10,
-              borderRadius: 8,
-              minWidth: isSmallScreen ? 80 : 100,
-              alignItems: 'center',
-            }}
           >
             {loading ? (
-              <ActivityIndicator color="white" size="small" />
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={{
-                color: 'white',
-                fontWeight: '600',
-                fontSize: isSmallScreen ? 14 : 16,
-              }}>
-                Speichern
-              </Text>
+              <Text style={dynamicStyles.saveButtonText}>Erstellen</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* MOBILE OPTIMIZED CONTENT */}
         <KeyboardAvoidingView 
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView 
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              padding: isSmallScreen ? 16 : 20,
-              paddingBottom: isSmallScreen ? 40 : 60,
-            }}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Info Card */}
-            <View style={{
-              backgroundColor: colors.primary + '10',
-              padding: isSmallScreen ? 12 : 16,
-              borderRadius: 12,
-              marginBottom: isSmallScreen ? 20 : 24,
-              borderLeftWidth: 4,
-              borderLeftColor: colors.primary,
-            }}>
-              <Text style={{
-                fontSize: isSmallScreen ? 14 : 16,
-                color: colors.text,
-                lineHeight: isSmallScreen ? 20 : 22,
-              }}>
-                🔐 Erstellen Sie einen neuen Benutzer für das Stadtwache-System. 
-                Alle mit * markierten Felder sind erforderlich.
+          <ScrollView style={dynamicStyles.content} showsVerticalScrollIndicator={false}>
+            
+            <View style={dynamicStyles.infoCard}>
+              <Text style={dynamicStyles.infoText}>
+                🔐 Ein neuer Benutzer wird dem Stadtwache-System hinzugefügt. 
+                Alle mit * markierten Felder sind Pflichtfelder.
               </Text>
             </View>
 
-            {/* Basic Information Section */}
-            <View style={{
-              backgroundColor: colors.surface,
-              borderRadius: 12,
-              padding: isSmallScreen ? 16 : 20,
-              marginBottom: isSmallScreen ? 16 : 20,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }}>
-              <Text style={{
-                fontSize: isSmallScreen ? 18 : 20,
-                fontWeight: 'bold',
-                color: colors.text,
-                marginBottom: isSmallScreen ? 16 : 20,
-              }}>
-                📋 Grunddaten
+            <Text style={dynamicStyles.sectionTitle}>📋 Grunddaten</Text>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>
+                📧 E-Mail Adresse <Text style={dynamicStyles.required}>*</Text>
               </Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.email}
+                onChangeText={(value) => updateField('email', value)}
+                placeholder="benutzer@stadtwache.de"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
 
-              {/* Email */}
-              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  📧 E-Mail Adresse <Text style={{ color: colors.error }}>*</Text>
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                    paddingVertical: isSmallScreen ? 12 : 14,
-                    fontSize: isSmallScreen ? 16 : 18,
-                    color: colors.text,
-                    minHeight: 48, // Mobile touch target
-                  }}
-                  value={formData.email}
-                  onChangeText={(text) => updateField('email', text)}
-                  placeholder="benutzer@stadtwache.de"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>
+                👤 Vollständiger Name <Text style={dynamicStyles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.username}
+                onChangeText={(value) => updateField('username', value)}
+                placeholder="Max Mustermann"
+                placeholderTextColor={colors.textMuted}
+                autoComplete="name"
+              />
+            </View>
 
-              {/* Username */}
-              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  👤 Benutzername <Text style={{ color: colors.error }}>*</Text>
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                    paddingVertical: isSmallScreen ? 12 : 14,
-                    fontSize: isSmallScreen ? 16 : 18,
-                    color: colors.text,
-                    minHeight: 48,
-                  }}
-                  value={formData.username}
-                  onChangeText={(text) => updateField('username', text)}
-                  placeholder="Max Mustermann"
-                  placeholderTextColor={colors.textMuted}
-                  autoCapitalize="words"
-                />
-              </View>
-
-              {/* Password */}
-              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  🔒 Passwort <Text style={{ color: colors.error }}>*</Text>
-                </Text>
-                <View style={{ position: 'relative' }}>
-                  <TextInput
-                    style={{
-                      backgroundColor: colors.background,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 8,
-                      paddingHorizontal: isSmallScreen ? 12 : 16,
-                      paddingVertical: isSmallScreen ? 12 : 14,
-                      fontSize: isSmallScreen ? 16 : 18,
-                      color: colors.text,
-                      minHeight: 48,
-                      paddingRight: 50,
+            {/* Profile Photo Upload */}
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>📸 Profilbild (optional)</Text>
+              <View style={dynamicStyles.photoUploadContainer}>
+                {formData.photo ? (
+                  <TouchableOpacity 
+                    style={dynamicStyles.photoPreview}
+                    onPress={() => {
+                      Alert.alert(
+                        '📸 Profilbild ändern',
+                        'Möchten Sie das Profilbild ändern oder entfernen?',
+                        [
+                          { text: 'Abbrechen', style: 'cancel' },
+                          { 
+                            text: 'Entfernen', 
+                            style: 'destructive',
+                            onPress: () => setFormData(prev => ({...prev, photo: ''}))
+                          },
+                          { text: 'Neues Foto', onPress: async () => {
+                            const photo = await pickImageForUser();
+                            if (photo) setFormData(prev => ({...prev, photo}));
+                          }}
+                        ]
+                      );
                     }}
-                    value={formData.password}
-                    onChangeText={(text) => updateField('password', text)}
-                    placeholder="Mindestens 6 Zeichen"
-                    placeholderTextColor={colors.textMuted}
-                    secureTextEntry={!showPasswords}
-                  />
-                  <TouchableOpacity
-                    style={{
-                      position: 'absolute',
-                      right: 12,
-                      top: isSmallScreen ? 12 : 14,
-                      padding: 4,
-                    }}
-                    onPress={() => setShowPasswords(!showPasswords)}
                   >
-                    <Ionicons 
-                      name={showPasswords ? "eye-off" : "eye"} 
-                      size={20} 
-                      color={colors.textMuted} 
+                    <Image 
+                      source={{ uri: formData.photo }} 
+                      style={dynamicStyles.profilePhotoPreview}
                     />
+                    <View style={dynamicStyles.photoOverlay}>
+                      <Ionicons name="camera" size={20} color="#FFFFFF" />
+                    </View>
                   </TouchableOpacity>
-                </View>
+                ) : (
+                  <View style={dynamicStyles.photoUploadButtons}>
+                    <TouchableOpacity 
+                      style={[dynamicStyles.photoButton, { backgroundColor: colors.primary }]}
+                      onPress={async () => {
+                        const photo = await pickImageForUser();
+                        if (photo) setFormData(prev => ({...prev, photo}));
+                      }}
+                    >
+                      <Ionicons name="images" size={20} color="#FFFFFF" />
+                      <Text style={dynamicStyles.photoButtonText}>Galerie</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[dynamicStyles.photoButton, { backgroundColor: colors.secondary || colors.primary }]}
+                      onPress={async () => {
+                        const photo = await takePhotoForUser();
+                        if (photo) setFormData(prev => ({...prev, photo}));
+                      }}
+                    >
+                      <Ionicons name="camera" size={20} color="#FFFFFF" />
+                      <Text style={dynamicStyles.photoButtonText}>Kamera</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
+            </View>
 
-              {/* Confirm Password */}
-              <View style={{ marginBottom: isSmallScreen ? 12 : 16 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  🔒 Passwort bestätigen <Text style={{ color: colors.error }}>*</Text>
-                </Text>
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>
+                🔐 Passwort <Text style={dynamicStyles.required}>*</Text>
+              </Text>
+              <View style={dynamicStyles.passwordContainer}>
                 <TextInput
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                    paddingVertical: isSmallScreen ? 12 : 14,
-                    fontSize: isSmallScreen ? 16 : 18,
-                    color: colors.text,
-                    minHeight: 48,
-                  }}
-                  value={formData.confirmPassword}
-                  onChangeText={(text) => updateField('confirmPassword', text)}
-                  placeholder="Passwort wiederholen"
+                  style={[dynamicStyles.formInput, dynamicStyles.passwordInput]}
+                  value={formData.password}
+                  onChangeText={(value) => updateField('password', value)}
+                  placeholder="Mindestens 6 Zeichen"
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPasswords}
                 />
+                <TouchableOpacity 
+                  style={dynamicStyles.passwordToggle}
+                  onPress={() => setShowPasswords(!showPasswords)}
+                >
+                  <Ionicons 
+                    name={showPasswords ? "eye-off" : "eye"} 
+                    size={20} 
+                    color={colors.textMuted} 
+                  />
+                </TouchableOpacity>
               </View>
-            </View>
-
-            {/* Role & Department Section */}
-            <View style={{
-              backgroundColor: colors.surface,
-              borderRadius: 12,
-              padding: isSmallScreen ? 16 : 20,
-              marginBottom: isSmallScreen ? 16 : 20,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }}>
-              <Text style={{
-                fontSize: isSmallScreen ? 18 : 20,
-                fontWeight: 'bold',
-                color: colors.text,
-                marginBottom: isSmallScreen ? 16 : 20,
-              }}>
-                🏢 Rolle & Abteilung
-              </Text>
-
-              {/* Role Selection */}
-              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 12,
-                }}>
-                  🎖️ Rolle
-                </Text>
-                <View style={{
-                  flexDirection: isSmallScreen ? 'column' : 'row',
-                  gap: isSmallScreen ? 8 : 12,
-                }}>
-                  {['officer', 'admin', 'dispatcher'].map((role) => (
-                    <TouchableOpacity
-                      key={role}
-                      style={{
-                        backgroundColor: formData.role === role ? colors.primary : colors.background,
-                        borderWidth: 1,
-                        borderColor: formData.role === role ? colors.primary : colors.border,
-                        borderRadius: 8,
-                        paddingHorizontal: isSmallScreen ? 16 : 20,
-                        paddingVertical: isSmallScreen ? 12 : 14,
-                        flex: isSmallScreen ? 0 : 1,
-                        alignItems: 'center',
-                        minHeight: 48,
-                        justifyContent: 'center',
-                      }}
-                      onPress={() => updateField('role', role)}
-                    >
-                      <Text style={{
-                        color: formData.role === role ? 'white' : colors.text,
-                        fontWeight: '600',
-                        fontSize: isSmallScreen ? 14 : 16,
-                      }}>
-                        {role === 'officer' ? '👮 Beamter' : 
-                         role === 'admin' ? '⚙️ Admin' : 
-                         '📡 Dispatcher'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+              {formData.password.length > 0 && (
+                <View style={dynamicStyles.passwordStrength}>
+                  <View style={[
+                    dynamicStyles.strengthIndicator,
+                    passwordStrength.strength === 1 && dynamicStyles.strengthWeak,
+                    passwordStrength.strength === 2 && dynamicStyles.strengthMedium,
+                    passwordStrength.strength === 3 && dynamicStyles.strengthStrong,
+                  ]} />
+                  <Text style={dynamicStyles.strengthText}>{passwordStrength.text}</Text>
                 </View>
-              </View>
+              )}
+            </View>
 
-              {/* Department */}
-              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  🏢 Abteilung
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                    paddingVertical: isSmallScreen ? 12 : 14,
-                    fontSize: isSmallScreen ? 16 : 18,
-                    color: colors.text,
-                    minHeight: 48,
-                  }}
-                  value={formData.department}
-                  onChangeText={(text) => updateField('department', text)}
-                  placeholder="z.B. Streifendienst, Kriminalpolizei"
-                  placeholderTextColor={colors.textMuted}
-                />
-              </View>
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>
+                🔐 Passwort bestätigen <Text style={dynamicStyles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.confirmPassword}
+                onChangeText={(value) => updateField('confirmPassword', value)}
+                placeholder="Passwort wiederholen"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showPasswords}
+              />
+            </View>
 
-              {/* Dienstgrad */}
-              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  🎖️ Dienstgrad
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                    paddingVertical: isSmallScreen ? 12 : 14,
-                    fontSize: isSmallScreen ? 16 : 18,
-                    color: colors.text,
-                    minHeight: 48,
-                  }}
-                  value={formData.rank}
-                  onChangeText={(text) => updateField('rank', text)}
-                  placeholder="z.B. Polizeihauptmeister, Kommissar"
-                  placeholderTextColor={colors.textMuted}
-                />
-              </View>
+            <Text style={dynamicStyles.sectionTitle}>🎖️ Dienstinformationen</Text>
 
-              {/* Phone */}
-              <View>
-                <Text style={{
-                  fontSize: isSmallScreen ? 14 : 16,
-                  fontWeight: '600',
-                  color: colors.text,
-                  marginBottom: 8,
-                }}>
-                  📞 Telefonnummer
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: isSmallScreen ? 12 : 16,
-                    paddingVertical: isSmallScreen ? 12 : 14,
-                    fontSize: isSmallScreen ? 16 : 18,
-                    color: colors.text,
-                    minHeight: 48,
-                  }}
-                  value={formData.phone}
-                  onChangeText={(text) => updateField('phone', text)}
-                  placeholder="+49 123 456789"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="phone-pad"
-                />
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🛡️ Rolle</Text>
+              <View style={dynamicStyles.roleSelector}>
+                <TouchableOpacity
+                  style={[
+                    dynamicStyles.roleOption,
+                    formData.role === 'officer' && dynamicStyles.roleOptionActive
+                  ]}
+                  onPress={() => updateField('role', 'officer')}
+                >
+                  <Text style={[
+                    dynamicStyles.roleOptionText,
+                    formData.role === 'officer' && dynamicStyles.roleOptionTextActive
+                  ]}>
+                    👮 Beamter
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    dynamicStyles.roleOption,
+                    formData.role === 'admin' && dynamicStyles.roleOptionActive
+                  ]}
+                  onPress={() => updateField('role', 'admin')}
+                >
+                  <Text style={[
+                    dynamicStyles.roleOptionText,
+                    formData.role === 'admin' && dynamicStyles.roleOptionTextActive
+                  ]}>
+                    🛡️ Admin
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
-            {/* Submit Button for Mobile */}
-            {isSmallScreen && (
-              <TouchableOpacity 
-                onPress={handleSubmit}
-                disabled={loading}
-                style={{
-                  backgroundColor: loading ? colors.border : colors.success,
-                  paddingVertical: 16,
-                  borderRadius: 12,
-                  alignItems: 'center',
-                  marginTop: 20,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 4,
-                }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <Text style={{
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: 18,
-                  }}>
-                    👤 Benutzer erstellen
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🏢 Abteilung</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.department}
+                onChangeText={(value) => updateField('department', value)}
+                placeholder="z.B. Streifendienst, Kriminalpolizei"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>👥 Team</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.team}
+                onChangeText={(value) => updateField('team', value)}
+                placeholder="z.B. Team Alpha, Team Bravo"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🆔 Dienstnummer</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.badge_number}
+                onChangeText={(value) => updateField('badge_number', value)}
+                placeholder="z.B. PB-2024-001"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🎖️ Dienstgrad</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.rank}
+                onChangeText={(value) => updateField('rank', value)}
+                placeholder="z.B. Polizeihauptmeister, Kommissar"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>📞 Telefonnummer</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={formData.phone}
+                onChangeText={(value) => updateField('phone', value)}
+                placeholder="+49 123 456789"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={[dynamicStyles.submitButton, loading && dynamicStyles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="person-add" size={20} color="#FFFFFF" />
+                  <Text style={dynamicStyles.submitButtonText}>Benutzer erstellen</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
