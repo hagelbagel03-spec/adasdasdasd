@@ -479,17 +479,12 @@ async def get_users_by_status(current_user: User = Depends(get_current_user)):
     
     return users_by_status
 
-# Root route
-@api_router.get("/")
-async def root():
-    return {"message": "Stadtwache API", "version": "1.0.0", "status": "running"}
-
 # Include router
 app.include_router(api_router)
 
-# Root route für direkte Backend-Zugriffe
+# Root route für direkte Backend-Zugriffe (außerhalb des /api Routers)
 @app.get("/")
-async def root():
+async def app_root():
     return {"message": "Stadtwache Backend API", "version": "1.0.0", "status": "running", "api_docs": "/docs"}
 
 # CORS middleware
