@@ -764,6 +764,40 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.post(`${BACKEND_BASE_URL}/api/emergency/broadcast`, emergencyData, config);
       
+      // 🔥 MOBILE TEAM-ALARM: Simuliere echte Push-Benachrichtigungen
+      try {
+        if (Platform.OS !== 'web') {
+          // Import Haptics für intensive Vibration
+          const { Haptics } = require('expo-haptics');
+          
+          // Intensive Alarm-Vibration für 5 Sekunden
+          for (let i = 0; i < 10; i++) {
+            setTimeout(() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }, i * 500);
+          }
+          
+          // Audio-Alarm simulieren (falls verfügbar)
+          try {
+            const { Audio } = require('expo-av');
+            // Hier könnte ein echter Alarm-Sound gespielt werden
+            console.log('🔊 Audio-Alarm würde hier abgespielt werden');
+          } catch (audioError) {
+            console.log('⚠️ Audio nicht verfügbar:', audioError.message);
+          }
+        }
+        
+        // Simuliere Team-Benachrichtigungen (würde normalerweise über Push-Service gehen)
+        console.log('📲 TEAM-ALARM: Alle Team-Mitglieder werden benachrichtigt!');
+        console.log('🚨 GPS-Standort wird an alle gesendet:', locationStatus);
+        
+        // In einer echten App würde hier eine Push-Notification an alle Team-Mitglieder gesendet
+        // und sie würden einen Alarm mit GPS-Koordinaten erhalten
+        
+      } catch (alarmError) {
+        console.log('⚠️ Team-Alarm-System Fehler:', alarmError.message);
+      }
+      
       setShowSOSModal(false);
       
       const successMessage = locationData 
