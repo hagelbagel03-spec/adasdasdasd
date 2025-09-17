@@ -9817,10 +9817,15 @@ Beispielinhalt:
                     </TouchableOpacity>
                   )}
 
-                  {selectedReport.status !== 'completed' && (
+                  {selectedReport && selectedReport.status !== 'completed' && (
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
+                        if (!selectedReport || !selectedReport.id) {
+                          Alert.alert('❌ Fehler', 'Bericht-Daten nicht verfügbar. Bitte schließen Sie das Fenster und versuchen Sie es erneut.');
+                          return;
+                        }
+                        
                         Alert.alert(
                           '✅ Status ändern',
                           `"${selectedReport.title}" auf "ABGESCHLOSSEN" setzen?`,
@@ -9828,7 +9833,14 @@ Beispielinhalt:
                             { text: 'Abbrechen', style: 'cancel' },
                             { 
                               text: 'Ändern', 
-                              onPress: () => updateReportStatus(selectedReport.id, 'completed', selectedReport.title)
+                              onPress: () => {
+                                try {
+                                  updateReportStatus(selectedReport.id, 'completed', selectedReport.title);
+                                } catch (buttonError) {
+                                  console.error('❌ Button action error:', buttonError);
+                                  Alert.alert('❌ Fehler', 'Aktion fehlgeschlagen. Bitte versuchen Sie es erneut.');
+                                }
+                              }
                             }
                           ]
                         );
