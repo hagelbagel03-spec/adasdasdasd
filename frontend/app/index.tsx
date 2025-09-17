@@ -9249,10 +9249,15 @@ Beispielinhalt:
                     </Text>
                   </TouchableOpacity>
 
+                  {/* MOBILE OPTIMIZED: Löschen Button (nur Admin) */}
                   {user?.role === 'admin' && (
                     <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
-                      onPress={() => {
+                      style={[dynamicStyles.actionButton, { 
+                        backgroundColor: colors.error,
+                        paddingVertical: isSmallScreen ? 12 : 16,
+                        minHeight: 48, // Mobile touch target
+                      }]}
+                      onPress={async () => {
                         Alert.alert(
                           '🗑️ Vorfall löschen',
                           `"${selectedIncident.title}" wirklich löschen?`,
@@ -9261,17 +9266,26 @@ Beispielinhalt:
                             {
                               text: 'Löschen',
                               style: 'destructive',
-                              onPress: () => {
-                                deleteIncident(selectedIncident.id, selectedIncident.title);
-                                setShowIncidentDetailModal(false);
+                              onPress: async () => {
+                                try {
+                                  await deleteIncident(selectedIncident.id, selectedIncident.title);
+                                  setShowIncidentDetailModal(false);
+                                } catch (error) {
+                                  console.error('Delete incident error:', error);
+                                  Alert.alert('Fehler', 'Vorfall konnte nicht gelöscht werden.');
+                                }
                               }
                             }
                           ]
                         );
                       }}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons name="trash" size={20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
+                      <Ionicons name="trash" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
+                      <Text style={[dynamicStyles.actionButtonText, { 
+                        color: '#FFFFFF',
+                        fontSize: isSmallScreen ? 14 : 16
+                      }]}>
                         🗑️ Vorfall löschen
                       </Text>
                     </TouchableOpacity>
