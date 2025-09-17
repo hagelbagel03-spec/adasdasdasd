@@ -9010,9 +9010,24 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
-                          updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
-                        }
+                        Alert.alert(
+                          '✅ Person erledigt',
+                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Erledigt',
+                              onPress: () => {
+                                try {
+                                  updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
+                                } catch (error) {
+                                  console.error('❌ Button error:', error);
+                                  Alert.alert('❌ Fehler', 'Aktion fehlgeschlagen. Bitte erneut versuchen.');
+                                }
+                              }
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
