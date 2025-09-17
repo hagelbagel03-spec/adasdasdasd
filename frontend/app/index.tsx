@@ -141,7 +141,7 @@ const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // LOADING DEAKTIVIERT
   
 const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
