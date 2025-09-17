@@ -149,13 +149,17 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
     // Sofortiges Laden ohne Blockierung
     console.log('🚀 Stadtwache App starting...');
     
-    // Loading nach maximal 5 Sekunden beenden
-    setTimeout(() => {
-      console.log('⏰ Force ending loading screen...');
-      setLoading(false);
-    }, 5000);
+    // Web: Nur Auth setup, kein Backend-Call der die Seite übernimmt
+    if (Platform.OS === 'web') {
+      console.log('🌐 Web-Modus: Überspringe checkAuthState');
+      setIsAuthenticated(false);
+      setUser(null);
+      setToken(null);
+    } else {
+      // Mobile: Normale Auth-Überprüfung
+      checkAuthState();
+    }
     
-    checkAuthState();
     setupAxiosInterceptors();
     console.log('✅ Stadtwache ready');
   }, []);
