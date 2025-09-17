@@ -132,22 +132,13 @@ const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(false); // LOADING VOLLSTÄNDIG DEAKTIVIERT
+  const [loading, setLoading] = useState(true);
   
 const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
-    // WEB-BUG FIX: Keine API-Calls für Web die die Seite überschreiben
-    if (Platform.OS !== 'web') {
-      checkAuthState();
-      setupAxiosInterceptors();
-    } else {
-      console.log('🌐 Web-Modus: API-Calls deaktiviert');
-      setIsAuthenticated(false);
-      setUser(null);
-      setToken(null);
-      setLoading(false);
-    }
+    checkAuthState();
+    setupAxiosInterceptors();
   }, []);
 
   const setupAxiosInterceptors = () => {
@@ -714,7 +705,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       try {
         console.log('📍 Starte GPS-Standort-Ermittlung...');
         
-        // Request permissions using the already imported Location module
+        // Import Location dynamically to avoid issues
+        const Location = require('expo-location');
+        
+        // Request permissions
         console.log('📍 Fordere GPS-Berechtigung an...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
