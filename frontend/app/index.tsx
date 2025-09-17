@@ -2943,9 +2943,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       // Get current position with timeout and error handling
       let location;
       try {
+        // FIXED: Use HIGH accuracy GPS for precise location
         location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced, // Changed from High to Balanced
-          timeout: 10000, // Reduced timeout to 10 seconds
+          accuracy: Location.Accuracy.High, // Changed back to High for better accuracy
+          timeout: 15000, // Increased timeout for better GPS signal
         });
       } catch (locationError) {
         console.error('❌ Location fetch failed:', locationError);
