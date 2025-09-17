@@ -88,6 +88,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
   });
   const [loading, setLoading] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
+  
+  const passwordStrength = getPasswordStrength(formData.password);
 
   const BACKEND_URL = "http://212.227.57.238:8001/api";
 
