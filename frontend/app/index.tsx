@@ -9781,10 +9781,15 @@ Beispielinhalt:
                 <View style={dynamicStyles.detailCard}>
                   <Text style={dynamicStyles.detailSectionTitle}>🎯 Status-Aktionen</Text>
                   
-                  {selectedReport.status !== 'in_progress' && (
+                  {selectedReport && selectedReport.status !== 'in_progress' && (
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
+                        if (!selectedReport || !selectedReport.id) {
+                          Alert.alert('❌ Fehler', 'Bericht-Daten nicht verfügbar. Bitte schließen Sie das Fenster und versuchen Sie es erneut.');
+                          return;
+                        }
+                        
                         Alert.alert(
                           '⚙️ Status ändern',
                           `"${selectedReport.title}" auf "IN BEARBEITUNG" setzen?`,
@@ -9792,7 +9797,14 @@ Beispielinhalt:
                             { text: 'Abbrechen', style: 'cancel' },
                             { 
                               text: 'Ändern', 
-                              onPress: () => updateReportStatus(selectedReport.id, 'in_progress', selectedReport.title)
+                              onPress: () => {
+                                try {
+                                  updateReportStatus(selectedReport.id, 'in_progress', selectedReport.title);
+                                } catch (buttonError) {
+                                  console.error('❌ Button action error:', buttonError);
+                                  Alert.alert('❌ Fehler', 'Aktion fehlgeschlagen. Bitte versuchen Sie es erneut.');
+                                }
+                              }
                             }
                           ]
                         );
