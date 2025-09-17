@@ -7150,21 +7150,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={[
-            dynamicStyles.categoryTab,
-            personFilter === 'gefunden' && dynamicStyles.categoryTabActive
-          ]}
-          onPress={() => setPersonFilter('gefunden')}
-        >
-          <Text style={[
-            dynamicStyles.categoryTabText,
-            personFilter === 'gefunden' && dynamicStyles.categoryTabTextActive
-          ]}>
-            ✅ Gefundene ({personStats.found_persons})
-          </Text>
-        </TouchableOpacity>
-        
+
         <TouchableOpacity 
           style={[
             dynamicStyles.categoryTab,
