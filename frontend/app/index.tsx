@@ -1524,7 +1524,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     } catch (error) {
       console.error('❌ Person delete error:', error);
       // Web-kompatible Fehlermeldung
-      window.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
+      Alert.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1599,13 +1599,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/incidents/${incidentId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
       await loadAllIncidents();
       await loadData(); // Home-Statistiken aktualisieren
       
     } catch (error) {
       console.error('❌ Incident delete error:', error);
-      window.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
+      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1618,13 +1618,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('✅ Schließe Vorfall ab:', incidentId, incidentTitle);
       await axios.put(`${API_URL}/api/incidents/${incidentId}/complete`, {}, config);
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
       await loadAllIncidents();
       await loadData();
       
     } catch (error) {
       console.error('❌ Incident complete error:', error);
-      window.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
+      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1645,7 +1645,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.put(`${API_URL}/api/incidents/${incidentId}`, updateData, config);
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
       
       // Reload data to reflect changes
       await loadAllIncidents();
@@ -1674,7 +1674,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1701,7 +1701,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'open': 'OFFEN'
       }[newStatus] || newStatus.toUpperCase();
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload incidents
       await loadAllIncidents();
@@ -1730,7 +1730,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1943,7 +1943,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         secondary_color: ''
       });
       
-      window.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
+      Alert.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
       setShowAdminSettingsModal(false);
       
     } catch (error) {
@@ -1954,7 +1954,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       } else if (error.response?.data?.detail) {
         errorMsg = error.response.data.detail;
       }
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2104,7 +2104,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       setShowPersonDetailModal(false);
       
       // Show success message
-      window.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload persons data
       await loadPersons();
@@ -2125,7 +2125,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2150,17 +2150,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const submitIncident = async () => {
     // Validation
     if (!incidentFormData.title.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
       return;
     }
     
     if (!incidentFormData.description.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
       return;
     }
     
     if (!incidentFormData.location.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
       return;
     }
 
@@ -2189,7 +2189,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log('✅ Incident submitted successfully:', response.data);
       
-      window.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
+      Alert.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
       
       // Reset form
       setIncidentFormData({
@@ -2221,7 +2221,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMessage = JSON.stringify(error);
       }
       
-      window.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
+      Alert.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
     } finally {
       setSubmittingIncident(false);
     }
@@ -2254,7 +2254,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      window.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
+      Alert.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
       setPrivateMessage('');
       setShowPrivateMessageModal(false);
       
@@ -2263,7 +2263,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     } catch (error) {
       console.error('❌ Private message error:', error);
-      window.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
+      Alert.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2557,14 +2557,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      window.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
+      Alert.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
       setChatReply('');
       setShowChatModal(false);
       await loadRecentMessages(); // Reload messages
       
     } catch (error) {
       console.error('❌ Chat reply error:', error);
-      window.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
+      Alert.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2870,7 +2870,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
-      window.alert(`❌ Nachricht konnte nicht gesendet werden`);
+      Alert.alert(`❌ Nachricht konnte nicht gesendet werden`);
     }
   };
 
