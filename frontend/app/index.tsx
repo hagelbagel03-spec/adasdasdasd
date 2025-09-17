@@ -332,12 +332,17 @@ const LoginScreen = ({ appConfig }) => {
       return;
     }
 
+    console.log('🔐 handleLogin gestartet mit:', { email, password: '***' });
     setLoading(true);
     const result = await login(email, password);
     setLoading(false);
 
+    console.log('📱 Login-Result:', result);
+    
     if (!result.success) {
-      Alert.alert('Verbindungsfehler', result.error);
+      Alert.alert('Anmeldung fehlgeschlagen', result.message);
+    } else {
+      console.log('✅ Login erfolgreich, User sollte jetzt eingeloggt sein');
     }
   };
 
