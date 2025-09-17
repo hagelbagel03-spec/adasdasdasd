@@ -10141,12 +10141,18 @@ Beispielinhalt:
   );
 }
 
+// Rename MainApp to StadtwacheApp to avoid conflicts  
+const StadtwacheApp = () => {
+  // All the main app logic goes here - but we need the complete structure
+  return <MainApp />;
+};
+
 // Main App Component - CLEAN STRUCTURE
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <MainApp />
+        <StadtwacheApp />
       </AuthProvider>
     </ThemeProvider>
   );
