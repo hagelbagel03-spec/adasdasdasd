@@ -6548,7 +6548,11 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           
           <TouchableOpacity 
             style={[dynamicStyles.statCard, { borderLeftColor: colors.success }]}
-            onPress={() => setShowAddUserModal(true)}
+            onPress={() => {
+              console.log('🔍 [DEBUG] Admin Benutzer hinzufügen Button gedrückt');
+              setShowAddUserModal(true);
+              console.log('🔍 [DEBUG] showAddUserModal nach setzen:', true);
+            }}
             activeOpacity={0.7}
           >
             <View style={dynamicStyles.statContent}>
