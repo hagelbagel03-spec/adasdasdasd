@@ -1069,13 +1069,18 @@ async def create_incident(incident_data: IncidentCreate, current_user: User = De
     incident_dict["status"] = "open"
     incident_dict["reported_by"] = current_user.username
     
-    # Handle coordinates from geocoding
+    # FIXED: Handle coordinates from GPS data correctly
     if isinstance(incident_dict.get("coordinates"), dict):
-        # Convert coordinates dict to location format
+        # Convert coordinates dict to location format AND preserve coordinates
         coords = incident_dict["coordinates"]
         incident_dict["location"] = {
             "lat": coords.get("lat", 51.2879),
             "lng": coords.get("lng", 7.2954)
+        }
+        # KEEP coordinates for GoogleMapsView compatibility
+        incident_dict["coordinates"] = {
+            "lat": coords.get("lat"),
+            "lng": coords.get("lng")
         }
     elif not incident_dict.get("location"):
         # Default location if no coordinates provided
