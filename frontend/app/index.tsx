@@ -7330,9 +7330,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         onPress={(e) => {
                           e.stopPropagation();
                           // Web-kompatible Bestätigung
-                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
-                            deletePerson(person.id, `${person.first_name} ${person.last_name}`);
-                          }
+                          Alert.alert(
+                            '🗑️ Person archivieren',
+                            `${person.first_name} ${person.last_name} wirklich archivieren?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              {
+                                text: 'Archivieren',
+                                style: 'destructive',
+                                onPress: () => deletePerson(person.id, `${person.first_name} ${person.last_name}`)
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="archive" size={16} color="#FFFFFF" />
