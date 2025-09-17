@@ -7818,19 +7818,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={[dynamicStyles.tabItem, activeTab === 'team' && dynamicStyles.tabItemActive]}
-          onPress={() => setActiveTab('team')}
-        >
-          <Ionicons 
-            name={activeTab === 'team' ? 'people' : 'people-outline'} 
-            size={24} 
-            color={activeTab === 'team' ? '#FFFFFF' : colors.textMuted} 
-          />
-          <Text style={[dynamicStyles.tabLabel, activeTab === 'team' && dynamicStyles.tabLabelActive]}>
-            Team
-          </Text>
-        </TouchableOpacity>
+        {/* Team Tab entfernt - wird später dynamisch hinzugefügt */}
 
         {/* Admin Tab - Only visible for admins */}
         {user?.role === 'admin' && (
