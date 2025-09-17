@@ -7381,10 +7381,25 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={dynamicStyles.deletePersonButton}
                         onPress={(e) => {
                           e.stopPropagation();
-                          // Web-kompatible Bestätigung
-                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
-                            deletePerson(person.id, `${person.first_name} ${person.last_name}`);
-                          }
+                          Alert.alert(
+                            '🗑️ Person archivieren',
+                            `${person.first_name} ${person.last_name} wirklich archivieren?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              {
+                                text: 'Archivieren',
+                                style: 'destructive',
+                                onPress: () => {
+                                  try {
+                                    deletePerson(person.id, `${person.first_name} ${person.last_name}`);
+                                  } catch (error) {
+                                    console.error('❌ Button error:', error);
+                                    Alert.alert('❌ Fehler', 'Aktion fehlgeschlagen. Bitte erneut versuchen.');
+                                  }
+                                }
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="archive" size={16} color="#FFFFFF" />
