@@ -8315,7 +8315,7 @@ Beispielinhalt:
         theme={{ colors, isDarkMode }}
       />
 
-      {/* Admin Settings Modal */}
+      {/* MOBILE OPTIMIZED: Admin Settings Modal */}
       <Modal
         visible={showAdminSettingsModal}
         transparent={true}
@@ -8327,35 +8327,112 @@ Beispielinhalt:
           style={{ flex: 1 }}
         >
           <View style={dynamicStyles.modalOverlay}>
-            <View style={[dynamicStyles.modalContainer, dynamicStyles.adminSettingsContainer]}>
-              <View style={dynamicStyles.adminSettingsHeader}>
+            <View style={[
+              dynamicStyles.modalContainer, 
+              dynamicStyles.adminSettingsContainer,
+              {
+                // Mobile responsive adjustments
+                marginHorizontal: isSmallScreen ? 10 : 20,
+                marginTop: isSmallScreen ? 40 : 60,
+                marginBottom: isSmallScreen ? 20 : 40,
+                maxHeight: screenHeight * 0.9,
+              }
+            ]}>
+              <View style={[
+                dynamicStyles.adminSettingsHeader,
+                {
+                  // Mobile header optimization
+                  paddingHorizontal: isSmallScreen ? 12 : 16,
+                  paddingVertical: isSmallScreen ? 12 : 16,
+                  flexDirection: isSmallScreen ? 'column' : 'row',
+                  alignItems: isSmallScreen ? 'stretch' : 'center',
+                }
+              ]}>
+                {/* Mobile optimized close button */}
                 <TouchableOpacity 
-                  style={dynamicStyles.profileCloseButton}
+                  style={[
+                    dynamicStyles.profileCloseButton,
+                    {
+                      alignSelf: 'flex-end',
+                      marginBottom: isSmallScreen ? 10 : 0,
+                    }
+                  ]}
                   onPress={() => setShowAdminSettingsModal(false)}
                 >
-                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                  <Ionicons name="close" size={isSmallScreen ? 20 : 24} color={colors.textMuted} />
                 </TouchableOpacity>
                 
-                <View style={dynamicStyles.adminHeaderContent}>
-                  <View style={dynamicStyles.adminIconContainer}>
-                    <Ionicons name="settings" size={48} color={colors.primary} />
+                <View style={[
+                  dynamicStyles.adminHeaderContent,
+                  {
+                    flex: 1,
+                    alignItems: isSmallScreen ? 'center' : 'flex-start',
+                    marginBottom: isSmallScreen ? 10 : 0,
+                  }
+                ]}>
+                  <View style={[
+                    dynamicStyles.adminIconContainer,
+                    {
+                      marginBottom: isSmallScreen ? 8 : 12,
+                    }
+                  ]}>
+                    <Ionicons name="settings" size={isSmallScreen ? 36 : 48} color={colors.primary} />
                   </View>
                   <View style={dynamicStyles.adminTitleContainer}>
-                    <Text style={dynamicStyles.adminModalTitle}>Admin Einstellungen</Text>
-                    <Text style={dynamicStyles.adminModalSubtitle}>App-Konfiguration verwalten</Text>
+                    <Text style={[
+                      dynamicStyles.adminModalTitle,
+                      {
+                        fontSize: isSmallScreen ? 18 : 22,
+                        textAlign: isSmallScreen ? 'center' : 'left',
+                      }
+                    ]}>Admin Einstellungen</Text>
+                    <Text style={[
+                      dynamicStyles.adminModalSubtitle,
+                      {
+                        fontSize: isSmallScreen ? 12 : 14,
+                        textAlign: isSmallScreen ? 'center' : 'left',
+                      }
+                    ]}>App-Konfiguration verwalten</Text>
                   </View>
                 </View>
                 
+                {/* Mobile optimized save button */}
                 <TouchableOpacity 
-                  style={dynamicStyles.adminSaveButton}
+                  style={[
+                    dynamicStyles.adminSaveButton,
+                    {
+                      paddingHorizontal: isSmallScreen ? 16 : 20,
+                      paddingVertical: isSmallScreen ? 10 : 12,
+                      minHeight: 44, // Mobile touch target
+                      width: isSmallScreen ? '100%' : 'auto',
+                    }
+                  ]}
                   onPress={saveAdminSettings}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                  <Text style={dynamicStyles.adminSaveButtonText}>Speichern</Text>
+                  <Ionicons name="checkmark" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
+                  <Text style={[
+                    dynamicStyles.adminSaveButtonText,
+                    {
+                      fontSize: isSmallScreen ? 14 : 16,
+                      marginLeft: 6,
+                    }
+                  ]}>Speichern</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={dynamicStyles.modalContent} showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                style={[
+                  dynamicStyles.modalContent,
+                  {
+                    paddingHorizontal: isSmallScreen ? 12 : 16,
+                  }
+                ]} 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingBottom: isSmallScreen ? 20 : 40,
+                }}
+              >
                 
                 {/* Current Configuration Display */}
                 <View style={dynamicStyles.formGroup}>
