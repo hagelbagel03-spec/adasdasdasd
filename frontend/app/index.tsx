@@ -380,6 +380,10 @@ const LoginScreen = ({ appConfig }) => {
       fontSize: 16,
       color: '#FFFFFF',
       backdropFilter: 'blur(10px)',
+      // Mobile: Mindest-Input-Höhe für Touch-Bedienung
+      minHeight: INPUT_HEIGHT,
+      // Mobile: Bessere Text-Eingabe
+      textAlignVertical: 'center', // Android
     },
     loginButton: {
       flexDirection: 'row',
