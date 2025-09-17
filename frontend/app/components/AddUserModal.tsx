@@ -731,15 +731,28 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
               />
             </View>
 
+            {/* Team Selection */}
             <View style={dynamicStyles.formGroup}>
-              <Text style={dynamicStyles.formLabel}>👥 Team</Text>
-              <TextInput
-                style={dynamicStyles.formInput}
-                value={formData.team}
-                onChangeText={(value) => updateField('team', value)}
-                placeholder="z.B. Team Alpha, Team Bravo"
-                placeholderTextColor={colors.textMuted}
-              />
+              <Text style={dynamicStyles.formLabel}>👥 Team-Zuordnung</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'].map((team) => (
+                  <TouchableOpacity
+                    key={team}
+                    style={[
+                      dynamicStyles.pickerButton,
+                      formData.team === team && dynamicStyles.pickerButtonActive
+                    ]}
+                    onPress={() => updateField('team', team)}
+                  >
+                    <Text style={[
+                      dynamicStyles.pickerButtonText,
+                      formData.team === team && dynamicStyles.pickerButtonTextActive
+                    ]}>
+                      Team {team}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <View style={dynamicStyles.formGroup}>
