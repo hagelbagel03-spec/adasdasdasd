@@ -8478,6 +8478,73 @@ Beispielinhalt:
                   />
                 </View>
 
+                {/* Team Management Section - NEU */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>👥 Team Übersicht</Text>
+                  <View style={dynamicStyles.currentConfigContainer}>
+                    <Text style={[dynamicStyles.configText, { marginBottom: 12, fontWeight: 'bold' }]}>
+                      Aktive Team-Mitglieder: {Object.values(usersByStatus).flat().length}
+                    </Text>
+                    
+                    {Object.entries(usersByStatus).map(([status, users]) => (
+                      <View key={status} style={{ marginBottom: 16 }}>
+                        <Text style={[dynamicStyles.configText, { 
+                          fontSize: 16, 
+                          fontWeight: '600', 
+                          color: colors.primary,
+                          marginBottom: 8 
+                        }]}>
+                          {status === 'Im Dienst' ? '🟢 Im Dienst' :
+                           status === 'Pause' ? '🟡 Pause' :
+                           status === 'Einsatz' ? '🔴 Einsatz' :
+                           status === 'Streife' ? '🚔 Streife' :
+                           status === 'Nicht verfügbar' ? '⚫ Nicht verfügbar' :
+                           `📋 ${status}`} ({users.length})
+                        </Text>
+                        
+                        {users.map((teamUser, index) => (
+                          <View key={teamUser.id || index} style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: colors.surface,
+                            padding: 12,
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            borderLeftWidth: 3,
+                            borderLeftColor: teamUser.is_online ? colors.success : colors.textMuted
+                          }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[dynamicStyles.configText, { fontWeight: '600' }]}>
+                                {teamUser.username}
+                              </Text>
+                              {teamUser.rank && (
+                                <Text style={[dynamicStyles.configText, { fontSize: 12, opacity: 0.7 }]}>
+                                  {teamUser.rank} • {teamUser.department || 'Keine Abt.'}
+                                </Text>
+                              )}
+                              {teamUser.phone && (
+                                <Text style={[dynamicStyles.configText, { fontSize: 12, opacity: 0.7 }]}>
+                                  📞 {teamUser.phone}
+                                </Text>
+                              )}
+                            </View>
+                            <View style={{
+                              backgroundColor: teamUser.is_online ? colors.success : colors.textMuted,
+                              borderRadius: 6,
+                              paddingHorizontal: 8,
+                              paddingVertical: 4
+                            }}>
+                              <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '600' }}>
+                                {teamUser.is_online ? 'ONLINE' : 'OFFLINE'}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
                 <View style={{ height: 40 }} />
               </ScrollView>
             </View>
