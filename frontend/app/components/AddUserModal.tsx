@@ -373,7 +373,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.primary,
+      backgroundColor: colors.secondary, // System-Farbe statt primary
       paddingVertical: 18,
       borderRadius: 16,
       marginTop: 24,
