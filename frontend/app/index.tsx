@@ -1051,11 +1051,16 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
   // Save or update report
   const saveReport = async () => {
+    console.log('📝 [DEBUG] saveReport gestartet');
+    console.log('📝 [DEBUG] reportFormData:', reportFormData);
+    
     if (!reportFormData.title || !reportFormData.content) {
+      console.log('❌ [DEBUG] Validation fehlgeschlagen - Titel oder Inhalt fehlt');
       Alert.alert('⚠️ Fehler', 'Bitte füllen Sie Titel und Inhalt aus');
       return;
     }
-
+    
+    console.log('✅ [DEBUG] Validation erfolgreich');
     setSavingReport(true);
 
     try {
