@@ -767,15 +767,37 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
               />
             </View>
 
+            {/* Rank Selection */}
             <View style={dynamicStyles.formGroup}>
               <Text style={dynamicStyles.formLabel}>🎖️ Dienstgrad</Text>
-              <TextInput
-                style={dynamicStyles.formInput}
-                value={formData.rank}
-                onChangeText={(value) => updateField('rank', value)}
-                placeholder="z.B. Polizeihauptmeister, Kommissar"
-                placeholderTextColor={colors.textMuted}
-              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {[
+                  'Polizeianwärter', 
+                  'Polizeimeister', 
+                  'Polizeihauptmeister', 
+                  'Polizeikommissar', 
+                  'Polizeihauptkommissar',
+                  'Kriminalrat',
+                  'Team Leader',
+                  'Einsatzleiter'
+                ].map((rank) => (
+                  <TouchableOpacity
+                    key={rank}
+                    style={[
+                      dynamicStyles.pickerButton,
+                      formData.rank === rank && dynamicStyles.pickerButtonActive
+                    ]}
+                    onPress={() => updateField('rank', rank)}
+                  >
+                    <Text style={[
+                      dynamicStyles.pickerButtonText,
+                      formData.rank === rank && dynamicStyles.pickerButtonTextActive
+                    ]}>
+                      {rank}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <View style={dynamicStyles.formGroup}>
