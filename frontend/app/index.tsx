@@ -8782,10 +8782,10 @@ Beispielinhalt:
                       {
                         backgroundColor: selectedPerson.status === 'vermisst' ? colors.warning + '20' :
                                        selectedPerson.status === 'gesucht' ? colors.error + '20' :
-                                       selectedPerson.status === 'gefunden' ? colors.success + '20' : colors.primary + '20',
+                                       colors.primary + '20',
                         borderColor: selectedPerson.status === 'vermisst' ? colors.warning :
                                    selectedPerson.status === 'gesucht' ? colors.error :
-                                   selectedPerson.status === 'gefunden' ? colors.success : colors.primary
+                                   colors.primary
                       }
                     ]}>
                       <Text style={[
