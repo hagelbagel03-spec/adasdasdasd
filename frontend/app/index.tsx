@@ -3023,11 +3023,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     }
   };
 
-  // Dynamic Styles basierend auf Theme
+  // Dynamic Styles basierend auf Theme - MOBILE OPTIMIERT
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      // Mobile: Sichere Bereiche berücksichtigen
+      paddingTop: Platform.OS === 'ios' ? 0 : 8,
     },
     content: {
       flex: 1,
