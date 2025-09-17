@@ -7330,7 +7330,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         onPress={(e) => {
                           e.stopPropagation();
                           // Web-kompatible Bestätigung
-                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
+                          if (Alert.alert(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
                             deletePerson(person.id, `${person.first_name} ${person.last_name}`);
                           }
                         }}
@@ -7469,7 +7469,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.success }]}
                       onPress={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
+                        if (Alert.alert(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
                           completeIncident(incident.id, incident.title);
                         }
                       }}
@@ -7481,7 +7481,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.error }]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
+                          if (Alert.alert(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
                             deleteIncident(incident.id, incident.title);
                           }
                         }}
@@ -8927,7 +8927,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
+                        if (Alert.alert(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
                           updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
                         }
                       }}
@@ -8944,7 +8944,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
+                        if (Alert.alert(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
                           updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
                         }
                       }}
@@ -9122,7 +9122,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
+                        if (Alert.alert(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
                           assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
                         }
                       }}
@@ -9139,7 +9139,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
+                        if (Alert.alert(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
                           updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
                         }
                       }}
@@ -9155,7 +9155,7 @@ Beispielinhalt:
                   <TouchableOpacity
                     style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                     onPress={() => {
-                      if (window.confirm(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
+                      if (Alert.alert(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
                         completeIncident(selectedIncident.id, selectedIncident.title);
                         setShowIncidentDetailModal(false);
                       }
@@ -9171,7 +9171,7 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
                       onPress={() => {
-                        if (window.confirm(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
+                        if (Alert.alert(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
                           deleteIncident(selectedIncident.id, selectedIncident.title);
                           setShowIncidentDetailModal(false);
                         }
