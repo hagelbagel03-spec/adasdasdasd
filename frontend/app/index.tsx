@@ -30,6 +30,10 @@ import GoogleMapsView from './components/GoogleMapsView';
 
 const { width, height } = Dimensions.get('window');
 
+// MOBILE RESPONSIVE - NUR DIE WICHTIGSTEN FIXES
+const isSmallScreen = width < 400;
+const isMediumScreen = width >= 400 && width < 600;
+
 // Theme Context für Dark/Light Mode
 const ThemeContext = createContext();
 
