@@ -9197,10 +9197,20 @@ Beispielinhalt:
                   <TouchableOpacity
                     style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                     onPress={() => {
-                      if (window.confirm(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
-                        completeIncident(selectedIncident.id, selectedIncident.title);
-                        setShowIncidentDetailModal(false);
-                      }
+                      Alert.alert(
+                        '✅ Vorfall abschließen',
+                        `"${selectedIncident.title}" abschließen?`,
+                        [
+                          { text: 'Abbrechen', style: 'cancel' },
+                          {
+                            text: 'Abschließen',
+                            onPress: () => {
+                              completeIncident(selectedIncident.id, selectedIncident.title);
+                              setShowIncidentDetailModal(false);
+                            }
+                          }
+                        ]
+                      );
                     }}
                   >
                     <Ionicons name="checkmark" size={20} color="#FFFFFF" />
