@@ -7478,9 +7478,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.success }]}
                       onPress={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
-                          completeIncident(incident.id, incident.title);
-                        }
+                        Alert.alert(
+                          '✅ Vorfall abschließen',
+                          `"${incident.title}" abschließen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Abschließen',
+                              onPress: () => completeIncident(incident.id, incident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="checkmark" size={16} color="#FFFFFF" />
