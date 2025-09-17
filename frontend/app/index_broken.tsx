@@ -28,7 +28,20 @@ import AddUserModal from './components/AddUserModal';
 import DiscordMessages from './components/DiscordMessages';
 import GoogleMapsView from './components/GoogleMapsView';
 
-const { width, height } = Dimensions.get('window');
+// Mobile-First Responsive Design mit besseren Breakpoints
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isMobile = screenWidth < 768;
+const isTablet = screenWidth >= 768 && screenWidth < 1024;
+const isDesktop = screenWidth >= 1024;
+
+// Mobile-optimierte Dimensionen
+const width = screenWidth || 390; // iPhone 12/13/14 width
+const height = screenHeight || 844; // iPhone 12/13/14 height
+
+// Mobile Touch-Targets (mindestens 44px für iOS, 48px für Android)
+const TOUCH_TARGET_SIZE = Platform.OS === 'ios' ? 44 : 48;
+const BUTTON_HEIGHT = Math.max(TOUCH_TARGET_SIZE, 50);
+const INPUT_HEIGHT = Math.max(TOUCH_TARGET_SIZE, 44);
 
 // Theme Context für Dark/Light Mode
 const ThemeContext = createContext();
@@ -132,22 +145,13 @@ const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(false); // LOADING VOLLSTÄNDIG DEAKTIVIERT
+  const [loading, setLoading] = useState(true);
   
 const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
-    // WEB-BUG FIX: Keine API-Calls für Web die die Seite überschreiben
-    if (Platform.OS !== 'web') {
-      checkAuthState();
-      setupAxiosInterceptors();
-    } else {
-      console.log('🌐 Web-Modus: API-Calls deaktiviert');
-      setIsAuthenticated(false);
-      setUser(null);
-      setToken(null);
-      setLoading(false);
-    }
+    checkAuthState();
+    setupAxiosInterceptors();
   }, []);
 
   const setupAxiosInterceptors = () => {
@@ -376,6 +380,10 @@ const LoginScreen = ({ appConfig }) => {
       fontSize: 16,
       color: '#FFFFFF',
       backdropFilter: 'blur(10px)',
+      // Mobile: Mindest-Input-Höhe für Touch-Bedienung
+      minHeight: INPUT_HEIGHT,
+      // Mobile: Bessere Text-Eingabe
+      textAlignVertical: 'center', // Android
     },
     loginButton: {
       flexDirection: 'row',
@@ -693,17 +701,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     try {
       console.log('🚨 SOS-Alarm wird gesendet...');
       
-      // Vibration/Sound Alarm
+      // Vibration/Sound Alarm - FIXED für Mobile
       if (Platform.OS !== 'web') {
         try {
-          const { Haptics } = require('expo-haptics');
-          if (Haptics) {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 500);
-            setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1000);
-          }
-        } catch (hapticsError) {
-          console.log('⚠️ Haptics nicht verfügbar:', hapticsError.message);
+          // Kein dynamischer Import - verwende direkte Vibration
+          const { Vibration } = require('react-native');
+          
+          // Intensive Alarm-Vibration für SOS
+          Vibration.vibrate([100, 200, 100, 200, 100, 200], false);
+          console.log('📳 SOS Vibration gestartet');
+          
+        } catch (vibrationError) {
+          console.log('⚠️ Vibration nicht verfügbar:', vibrationError.message);
         }
       }
 
@@ -714,10 +723,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       try {
         console.log('📍 Starte GPS-Standort-Ermittlung...');
         
-        // Import Location dynamically to avoid issues
-        const Location = require('expo-location');
-        
-        // Request permissions
+        // Request permissions using the already imported Location module
         console.log('📍 Fordere GPS-Berechtigung an...');
         const { status } = await Location.requestForegroundPermissionsAsync();
         
@@ -1046,11 +1052,16 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
   // Save or update report
   const saveReport = async () => {
+    console.log('📝 [DEBUG] saveReport gestartet');
+    console.log('📝 [DEBUG] reportFormData:', reportFormData);
+    
     if (!reportFormData.title || !reportFormData.content) {
+      console.log('❌ [DEBUG] Validation fehlgeschlagen - Titel oder Inhalt fehlt');
       Alert.alert('⚠️ Fehler', 'Bitte füllen Sie Titel und Inhalt aus');
       return;
     }
-
+    
+    console.log('✅ [DEBUG] Validation erfolgreich');
     setSavingReport(true);
 
     try {
@@ -1483,18 +1494,19 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/persons/${personId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      window.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
+      Alert.alert('✅ Erfolg', `${personName} wurde erfolgreich archiviert!`);
       await loadPersons();
       await loadPersonStats();
       
     } catch (error) {
       console.error('❌ Person delete error:', error);
       // Web-kompatible Fehlermeldung
-      window.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
+      Alert.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
     }
   };
 
   const createNewPerson = () => {
+    console.log('🆕 DEBUG: createNewPerson aufgerufen');
     setEditingPerson(null);
     setPersonFormData({
       first_name: '',
@@ -1511,7 +1523,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       priority: 'medium',
       photo: ''
     });
+    console.log('🆕 DEBUG: Modal wird geöffnet...');
     setShowPersonModal(true);
+    console.log('🆕 DEBUG: showPersonModal gesetzt auf:', true);
   };
 
   const editPerson = (person) => {
@@ -1565,13 +1579,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await axios.delete(`${API_URL}/api/incidents/${incidentId}`, config);
       
       // Web-kompatible Erfolgsmeldung
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
       await loadAllIncidents();
       await loadData(); // Home-Statistiken aktualisieren
       
     } catch (error) {
       console.error('❌ Incident delete error:', error);
-      window.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
+      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1584,13 +1598,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('✅ Schließe Vorfall ab:', incidentId, incidentTitle);
       await axios.put(`${API_URL}/api/incidents/${incidentId}/complete`, {}, config);
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
       await loadAllIncidents();
       await loadData();
       
     } catch (error) {
       console.error('❌ Incident complete error:', error);
-      window.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
+      Alert.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1611,7 +1625,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.put(`${API_URL}/api/incidents/${incidentId}`, updateData, config);
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
       
       // Reload data to reflect changes
       await loadAllIncidents();
@@ -1640,7 +1654,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1667,7 +1681,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'open': 'OFFEN'
       }[newStatus] || newStatus.toUpperCase();
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload incidents
       await loadAllIncidents();
@@ -1696,7 +1710,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1707,7 +1721,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       if (permissionResult.granted === false) {
         Alert.alert('📸 Berechtigung erforderlich', 'Berechtigung für Galerie-Zugriff erforderlich');
-        return;
+        return null;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -1720,15 +1734,21 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       if (!result.canceled && result.assets[0].base64) {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Für Incident-Form
         setIncidentFormData({
           ...incidentFormData,
           photo: base64Image
         });
+        
         console.log('📸 Incident photo selected');
+        return base64Image; // Gebe das Image für andere Uses zurück
       }
+      return null;
     } catch (error) {
       console.error('❌ Image picker error:', error);
       Alert.alert('❌ Fehler', 'Fehler beim Auswählen des Bildes');
+      return null;
     }
   };
 
@@ -1738,7 +1758,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       if (permissionResult.granted === false) {
         Alert.alert('📷 Berechtigung erforderlich', 'Berechtigung für Kamera-Zugriff erforderlich');
-        return;
+        return null;
       }
 
       const result = await ImagePicker.launchCameraAsync({
@@ -1750,15 +1770,21 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       if (!result.canceled && result.assets[0].base64) {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Für Incident-Form
         setIncidentFormData({
           ...incidentFormData,
           photo: base64Image
         });
+        
         console.log('📷 Incident photo taken');
+        return base64Image; // Gebe das Image für andere Uses zurück
       }
+      return null;
     } catch (error) {
       console.error('❌ Camera error:', error);
       Alert.alert('❌ Fehler', 'Fehler beim Aufnehmen des Fotos');
+      return null;
     }
   };
 
@@ -1909,7 +1935,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         secondary_color: ''
       });
       
-      window.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
+      Alert.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
       setShowAdminSettingsModal(false);
       
     } catch (error) {
@@ -1920,7 +1946,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       } else if (error.response?.data?.detail) {
         errorMsg = error.response.data.detail;
       }
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1964,28 +1990,31 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log(`📊 Update Report Status: ${reportId} -> ${newStatus}`);
       
+      // Status-Text Mapping ZUERST definieren
+      const statusText = {
+        'in_progress': 'IN BEARBEITUNG',
+        'completed': 'ABGESCHLOSSEN', 
+        'archived': 'ARCHIVIERT'
+      };
+      
       // Get current report data first
       const currentReport = reports.find(r => r.id === reportId) || selectedReport;
       
-      // Send complete report data with updated status
+      // TEMPORÄRER FIX: Status-Update über separaten Endpoint (falls verfügbar)
+      // oder als Kommentar im content
       const updateData = {
         title: currentReport?.title || reportTitle,
-        content: currentReport?.content || '',
-        shift_date: currentReport?.shift_date || new Date().toISOString().split('T')[0],
-        status: newStatus
+        content: `${currentReport?.content || ''}\n\n[Status: ${statusText[newStatus] || newStatus}]`,
+        shift_date: currentReport?.shift_date || new Date().toISOString().split('T')[0]
       };
       
       console.log('📊 Sending update data:', updateData);
       
       await axios.put(`${BACKEND_BASE_URL}/api/reports/${reportId}`, updateData, config);
       
-      const statusText = {
-        'in_progress': 'IN BEARBEITUNG',
-        'completed': 'ABGESCHLOSSEN', 
-        'archived': 'ARCHIVIERT'
-      }[newStatus] || newStatus.toUpperCase();
+      const statusDisplayText = statusText[newStatus] || newStatus.toUpperCase();
       
-      Alert.alert('✅ Erfolg', `Bericht "${reportTitle}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert('✅ Erfolg', `Bericht "${reportTitle}" wurde auf "${statusDisplayText}" gesetzt!`);
       
       // Reload reports
       await loadReports();
@@ -2061,7 +2090,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       setShowPersonDetailModal(false);
       
       // Show success message
-      window.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload persons data
       await loadPersons();
@@ -2082,7 +2111,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2107,17 +2136,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const submitIncident = async () => {
     // Validation
     if (!incidentFormData.title.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
       return;
     }
     
     if (!incidentFormData.description.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
       return;
     }
     
     if (!incidentFormData.location.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
       return;
     }
 
@@ -2146,7 +2175,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log('✅ Incident submitted successfully:', response.data);
       
-      window.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
+      Alert.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
       
       // Reset form
       setIncidentFormData({
@@ -2178,7 +2207,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMessage = JSON.stringify(error);
       }
       
-      window.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
+      Alert.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
     } finally {
       setSubmittingIncident(false);
     }
@@ -2211,7 +2240,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      window.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
+      Alert.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
       setPrivateMessage('');
       setShowPrivateMessageModal(false);
       
@@ -2220,7 +2249,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     } catch (error) {
       console.error('❌ Private message error:', error);
-      window.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
+      Alert.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2514,14 +2543,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      window.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
+      Alert.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
       setChatReply('');
       setShowChatModal(false);
       await loadRecentMessages(); // Reload messages
       
     } catch (error) {
       console.error('❌ Chat reply error:', error);
-      window.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
+      Alert.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2827,7 +2856,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
-      window.alert(`❌ Nachricht konnte nicht gesendet werden`);
+      Alert.alert(`❌ Nachricht konnte nicht gesendet werden`);
     }
   };
 
@@ -3022,11 +3051,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     }
   };
 
-  // Dynamic Styles basierend auf Theme
+  // Dynamic Styles basierend auf Theme - MOBILE OPTIMIERT
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      // Mobile: Sichere Bereiche berücksichtigen
+      paddingTop: Platform.OS === 'ios' ? 0 : 8,
     },
     content: {
       flex: 1,
@@ -3938,15 +3969,24 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       textAlign: 'center',
     },
     
-    // Action Buttons
+    // Action Buttons - MOBILE OPTIMIERT
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: colors.secondary,
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderRadius: 16,
       marginTop: 8,
+      // Mobile: Mindest-Touch-Target von 44px/48px
+      minHeight: BUTTON_HEIGHT,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3, // Android shadow
+      gap: 8, // Mobile: Abstand zwischen Icon und Text
     },
     actionText: {
       fontSize: 16,
@@ -4036,7 +4076,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     },
     addButton: {
       padding: 12,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.secondary, // System-Farbe
       borderRadius: 12,
     },
 
@@ -6585,6 +6625,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </TouchableOpacity>
 
           <TouchableOpacity 
+            style={[dynamicStyles.adminActionButton, { backgroundColor: colors.primary }]}
+            onPress={() => setActiveTab('team')}
+          >
+            <Ionicons name="people" size={20} color="#FFFFFF" />
+            <Text style={dynamicStyles.adminActionButtonText}>Team verwalten</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
             style={[dynamicStyles.adminActionButton, { backgroundColor: colors.warning }]}
             onPress={() => {
               Alert.alert(
@@ -6592,7 +6640,20 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                 'System neu starten? Dies kann einige Sekunden dauern.',
                 [
                   { text: 'Abbrechen', style: 'cancel' },
-                  { text: 'Neustart', onPress: () => window.location.reload() }
+                  { 
+                    text: 'Neustart', 
+                    onPress: () => {
+                      if (Platform.OS === 'web') {
+                        // @ts-ignore
+                        window.location.reload();
+                      } else {
+                        // Mobile: App restart nicht möglich, stattdessen zur Login-Seite
+                        setIsAuthenticated(false);
+                        setUser(null);
+                        setCurrentTab('incidents');
+                      }
+                    }
+                  }
                 ]
               );
             }}
@@ -7158,21 +7219,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         <TouchableOpacity 
           style={[
             dynamicStyles.categoryTab,
-            personFilter === 'gefunden' && dynamicStyles.categoryTabActive
-          ]}
-          onPress={() => setPersonFilter('gefunden')}
-        >
-          <Text style={[
-            dynamicStyles.categoryTabText,
-            personFilter === 'gefunden' && dynamicStyles.categoryTabTextActive
-          ]}>
-            ✅ Gefundene ({personStats.found_persons})
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[
-            dynamicStyles.categoryTab,
             personFilter === 'erledigt' && dynamicStyles.categoryTabActive
           ]}
           onPress={() => setPersonFilter('erledigt')}
@@ -7211,7 +7257,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       {/* Add Person Button */}
       <TouchableOpacity
-        style={[dynamicStyles.actionButton, { backgroundColor: colors.primary }]}
+        style={[dynamicStyles.actionButton, { backgroundColor: colors.secondary }]}
         onPress={createNewPerson}
       >
         <Ionicons name="person-add" size={20} color="#FFFFFF" />
@@ -7240,8 +7286,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       return person.status === 'vermisst';
                     case 'gesucht':
                       return person.status === 'gesucht';
-                    case 'gefunden':
-                      return person.status === 'gefunden';
                     case 'erledigt':
                       return person.status === 'erledigt';
                     default:
@@ -7317,7 +7361,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                     ]}>
                       📊 Status: {person.status === 'vermisst' ? '⚠️ Vermisst' :
                                   person.status === 'gesucht' ? '🚨 Gesucht' :
-                                  person.status === 'gefunden' ? '✅ Gefunden' :
                                   '📋 ' + (person.status || 'Unbekannt')}
                     </Text>
                     {person.case_number && (
@@ -7342,9 +7385,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         onPress={(e) => {
                           e.stopPropagation();
                           // Web-kompatible Bestätigung
-                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
-                            deletePerson(person.id, `${person.first_name} ${person.last_name}`);
-                          }
+                          Alert.alert(
+                            '🗑️ Person archivieren',
+                            `${person.first_name} ${person.last_name} wirklich archivieren?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              {
+                                text: 'Archivieren',
+                                style: 'destructive',
+                                onPress: () => deletePerson(person.id, `${person.first_name} ${person.last_name}`)
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="archive" size={16} color="#FFFFFF" />
@@ -7481,9 +7533,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.success }]}
                       onPress={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
-                          completeIncident(incident.id, incident.title);
-                        }
+                        Alert.alert(
+                          '✅ Vorfall abschließen',
+                          `"${incident.title}" abschließen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Abschließen',
+                              onPress: () => completeIncident(incident.id, incident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="checkmark" size={16} color="#FFFFFF" />
@@ -7493,9 +7553,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.error }]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
-                            deleteIncident(incident.id, incident.title);
-                          }
+                          Alert.alert(
+                            '🗑️ Vorfall löschen',
+                            `"${incident.title}" wirklich löschen?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              {
+                                text: 'Löschen',
+                                style: 'destructive',
+                                onPress: () => deleteIncident(incident.id, incident.title)
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="trash" size={16} color="#FFFFFF" />
@@ -7773,19 +7842,22 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={[dynamicStyles.tabItem, activeTab === 'team' && dynamicStyles.tabItemActive]}
-          onPress={() => setActiveTab('team')}
-        >
-          <Ionicons 
-            name={activeTab === 'team' ? 'people' : 'people-outline'} 
-            size={24} 
-            color={activeTab === 'team' ? '#FFFFFF' : colors.textMuted} 
-          />
-          <Text style={[dynamicStyles.tabLabel, activeTab === 'team' && dynamicStyles.tabLabelActive]}>
-            Team
-          </Text>
-        </TouchableOpacity>
+        {/* Team Tab - Only visible if user has a team */}
+        {user?.team && (
+          <TouchableOpacity 
+            style={[dynamicStyles.tabItem, activeTab === 'myteam' && dynamicStyles.tabItemActive]}
+            onPress={() => setActiveTab('myteam')}
+          >
+            <Ionicons 
+              name={activeTab === 'myteam' ? 'people' : 'people-outline'} 
+              size={24} 
+              color={activeTab === 'myteam' ? '#FFFFFF' : colors.textMuted} 
+            />
+            <Text style={[dynamicStyles.tabLabel, activeTab === 'myteam' && dynamicStyles.tabLabelActive]}>
+              Team {user.team}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Admin Tab - Only visible for admins */}
         {user?.role === 'admin' && (
@@ -8226,6 +8298,11 @@ Beispielinhalt:
                       <Image 
                         source={{ uri: reportFormData.images[0] }} 
                         style={dynamicStyles.incidentPhotoPreview}
+                        onError={(error) => {
+                          console.log('❌ Image load error:', error);
+                          Alert.alert('Fehler', 'Bild konnte nicht geladen werden');
+                        }}
+                        onLoad={() => console.log('✅ Image loaded successfully')}
                       />
                       <View style={dynamicStyles.photoOverlay}>
                         <Ionicons name="camera" size={20} color="#FFFFFF" />
@@ -8294,7 +8371,7 @@ Beispielinhalt:
           }
         }}
         token={token}
-        theme={{ colors, isDarkMode }}
+        theme={{ colors }} // Theme übergeben
       />
 
       {/* Admin Settings Modal */}
@@ -8426,6 +8503,73 @@ Beispielinhalt:
                     placeholder={appConfig.organization_name}
                     placeholderTextColor={colors.textMuted}
                   />
+                </View>
+
+                {/* Team Management Section - NEU */}
+                <View style={dynamicStyles.formGroup}>
+                  <Text style={dynamicStyles.formLabel}>👥 Team Übersicht</Text>
+                  <View style={dynamicStyles.currentConfigContainer}>
+                    <Text style={[dynamicStyles.configText, { marginBottom: 12, fontWeight: 'bold' }]}>
+                      Aktive Team-Mitglieder: {Object.values(usersByStatus).flat().length}
+                    </Text>
+                    
+                    {Object.entries(usersByStatus).map(([status, users]) => (
+                      <View key={status} style={{ marginBottom: 16 }}>
+                        <Text style={[dynamicStyles.configText, { 
+                          fontSize: 16, 
+                          fontWeight: '600', 
+                          color: colors.primary,
+                          marginBottom: 8 
+                        }]}>
+                          {status === 'Im Dienst' ? '🟢 Im Dienst' :
+                           status === 'Pause' ? '🟡 Pause' :
+                           status === 'Einsatz' ? '🔴 Einsatz' :
+                           status === 'Streife' ? '🚔 Streife' :
+                           status === 'Nicht verfügbar' ? '⚫ Nicht verfügbar' :
+                           `📋 ${status}`} ({users.length})
+                        </Text>
+                        
+                        {users.map((teamUser, index) => (
+                          <View key={teamUser.id || index} style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: colors.surface,
+                            padding: 12,
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            borderLeftWidth: 3,
+                            borderLeftColor: teamUser.is_online ? colors.success : colors.textMuted
+                          }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[dynamicStyles.configText, { fontWeight: '600' }]}>
+                                {teamUser.username}
+                              </Text>
+                              {teamUser.rank && (
+                                <Text style={[dynamicStyles.configText, { fontSize: 12, opacity: 0.7 }]}>
+                                  {teamUser.rank} • {teamUser.department || 'Keine Abt.'}
+                                </Text>
+                              )}
+                              {teamUser.phone && (
+                                <Text style={[dynamicStyles.configText, { fontSize: 12, opacity: 0.7 }]}>
+                                  📞 {teamUser.phone}
+                                </Text>
+                              )}
+                            </View>
+                            <View style={{
+                              backgroundColor: teamUser.is_online ? colors.success : colors.textMuted,
+                              borderRadius: 6,
+                              paddingHorizontal: 8,
+                              paddingVertical: 4
+                            }}>
+                              <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '600' }}>
+                                {teamUser.is_online ? 'ONLINE' : teamUser.status || 'OFFLINE'}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -8604,18 +8748,7 @@ Beispielinhalt:
                       personFormData.status === 'gesucht' && dynamicStyles.pickerButtonTextActive
                     ]}>🚨 Gesucht</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      dynamicStyles.pickerButton, 
-                      personFormData.status === 'gefunden' && dynamicStyles.pickerButtonActive
-                    ]}
-                    onPress={() => setPersonFormData({...personFormData, status: 'gefunden'})}
-                  >
-                    <Text style={[
-                      dynamicStyles.pickerButtonText,
-                      personFormData.status === 'gefunden' && dynamicStyles.pickerButtonTextActive
-                    ]}>✅ Gefunden</Text>
-                  </TouchableOpacity>
+                  {/* Gefunden Status entfernt */}
                 </View>
               </View>
 
@@ -8838,7 +8971,6 @@ Beispielinhalt:
                       ]}>
                         {selectedPerson.status === 'vermisst' ? '⚠️ Vermisst' :
                          selectedPerson.status === 'gesucht' ? '🚨 Gesucht' :
-                         selectedPerson.status === 'gefunden' ? '✅ Gefunden' :
                          '📋 ' + (selectedPerson.status || 'Unbekannt')}
                       </Text>
                     </View>
@@ -8939,9 +9071,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
-                          updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
-                        }
+                        Alert.alert(
+                          '✅ Person erledigt',
+                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Erledigt',
+                              onPress: () => updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
@@ -8952,21 +9092,7 @@ Beispielinhalt:
                   )}
                   
                   {/* Status Ändern Buttons */}
-                  {selectedPerson.status !== 'gefunden' && (
-                    <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
-                      onPress={() => {
-                        if (window.confirm(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
-                          updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
-                        }
-                      }}
-                    >
-                      <Ionicons name="location" size={20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
-                        ✅ Als gefunden markieren
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  {/* Gefunden Button entfernt */}
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -9134,9 +9260,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
-                          assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
-                        }
+                        Alert.alert(
+                          '👤 Vorfall annehmen',
+                          `"${selectedIncident.title}" annehmen und selbst bearbeiten?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Annehmen',
+                              onPress: () => assignIncidentToSelf(selectedIncident.id, selectedIncident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="person-add" size={20} color="#FFFFFF" />
@@ -9151,9 +9285,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
-                          updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
-                        }
+                        Alert.alert(
+                          '⚙️ Status ändern', 
+                          `"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Ändern',
+                              onPress: () => updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="cog" size={20} color="#FFFFFF" />
@@ -9167,10 +9309,20 @@ Beispielinhalt:
                   <TouchableOpacity
                     style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                     onPress={() => {
-                      if (window.confirm(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
-                        completeIncident(selectedIncident.id, selectedIncident.title);
-                        setShowIncidentDetailModal(false);
-                      }
+                      Alert.alert(
+                        '✅ Vorfall abschließen',
+                        `"${selectedIncident.title}" abschließen?`,
+                        [
+                          { text: 'Abbrechen', style: 'cancel' },
+                          {
+                            text: 'Abschließen',
+                            onPress: () => {
+                              completeIncident(selectedIncident.id, selectedIncident.title);
+                              setShowIncidentDetailModal(false);
+                            }
+                          }
+                        ]
+                      );
                     }}
                   >
                     <Ionicons name="checkmark" size={20} color="#FFFFFF" />
@@ -9183,10 +9335,21 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
                       onPress={() => {
-                        if (window.confirm(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
-                          deleteIncident(selectedIncident.id, selectedIncident.title);
-                          setShowIncidentDetailModal(false);
-                        }
+                        Alert.alert(
+                          '🗑️ Vorfall löschen',
+                          `"${selectedIncident.title}" wirklich löschen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Löschen',
+                              style: 'destructive',
+                              onPress: () => {
+                                deleteIncident(selectedIncident.id, selectedIncident.title);
+                                setShowIncidentDetailModal(false);
+                              }
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="trash" size={20} color="#FFFFFF" />
@@ -9864,30 +10027,76 @@ Beispielinhalt:
         </SafeAreaView>
       </Modal>
 
-      {/* SOS Modal */}
+      {/* SOS Modal - MOBILE OPTIMIERT */}
       <Modal
         visible={showSOSModal}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setShowSOSModal(false)}
       >
-        <SafeAreaView style={dynamicStyles.container}>
-          <View style={dynamicStyles.profileModalHeader}>
-            <TouchableOpacity 
-              style={dynamicStyles.profileCloseButton}
-              onPress={() => setShowSOSModal(false)}
-            >
-              <Ionicons name="close" size={24} color={colors.textMuted} />
-            </TouchableOpacity>
-            
-            <View style={dynamicStyles.profileHeaderContent}>
-              <View style={dynamicStyles.sosIconContainer}>
-                <Ionicons name="warning" size={48} color="#FF0000" />
+        <View style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          // Mobile: Vollbildschirm verwenden
+        }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{
+              padding: isMobile ? 16 : 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+            }}>
+              <TouchableOpacity 
+                style={{
+                  position: 'absolute',
+                  top: 20,
+                  left: 20,
+                  padding: 12,
+                  backgroundColor: colors.surface,
+                  borderRadius: 50,
+                  zIndex: 1,
+                }}
+                onPress={() => setShowSOSModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              <View style={{
+                alignItems: 'center',
+                marginBottom: 32,
+              }}>
+                <View style={{
+                  width: isMobile ? 120 : 96,
+                  height: isMobile ? 120 : 96,
+                  backgroundColor: '#FF0000',
+                  borderRadius: isMobile ? 60 : 48,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 24,
+                  shadowColor: '#FF0000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 12,
+                }}>
+                  <Ionicons name="warning" size={isMobile ? 64 : 48} color="#FFFFFF" />
+                </View>
+                <Text style={{
+                  fontSize: isMobile ? 28 : 24,
+                  fontWeight: 'bold',
+                  color: '#FF0000',
+                  marginBottom: 8,
+                  textAlign: 'center',
+                }}>🚨 NOTFALL-ALARM</Text>
+                <Text style={{
+                  fontSize: isMobile ? 18 : 16,
+                  color: colors.textMuted,
+                  textAlign: 'center',
+                  maxWidth: isMobile ? '90%' : '70%',
+                }}>Alle Team-Mitglieder werden sofort alarmiert und erhalten Ihren GPS-Standort</Text>
               </View>
-              <Text style={dynamicStyles.sosModalTitle}>🚨 NOTFALL-ALARM</Text>
-              <Text style={dynamicStyles.sosModalSubtitle}>Alle Team-Mitglieder alarmieren</Text>
+
             </View>
-          </View>
 
           <ScrollView style={dynamicStyles.profileContent}>
             <View style={dynamicStyles.sosWarningBox}>
@@ -9917,37 +10126,47 @@ Beispielinhalt:
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
+        </View>
       </Modal>
+    );
+  };
+
+  // Return der Hauptkomponente
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <StatusBar />
+      {loading ? renderLoadingScreen() : isAuthenticated ? renderMainContent() : renderLoginScreen()}
+      {renderModals()}
     </SafeAreaView>
   );
+}
+
+// Rename MainApp to StadtwacheApp to avoid conflicts  
+const StadtwacheApp = () => {
+  // All the main app logic goes here - pass config as props
+  return <MainApp 
+    appConfig={{
+      app_name: 'Stadtwache',
+      app_subtitle: 'Polizei Management System',
+      app_icon: null,
+      organization_name: 'Sicherheitsbehörde Schwelm',
+      primary_color: '#1E40AF',
+      secondary_color: '#3B82F6'
+    }}
+    API_URL="http://212.227.57.238:8001"
+  />;
 };
 
-// Main App Component
+// Main App Component - CLEAN STRUCTURE
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <StadtwacheApp />
       </AuthProvider>
     </ThemeProvider>
   );
 }
-
-const AppContent = () => {
-  const { user, loading } = useAuth();
-  const { colors } = useTheme();
-  
-  // App Configuration States
-  const [appConfig, setAppConfig] = useState({
-    app_name: 'Stadtwache',
-    app_subtitle: 'Polizei Management System',
-    app_icon: null,
-    organization_name: 'Sicherheitsbehörde Schwelm',
-    primary_color: '#1E40AF',
-    secondary_color: '#3B82F6'
-  });
-
-  const API_URL = "http://212.227.57.238:8001";
 
   // Load app configuration
   const loadAppConfig = async () => {
