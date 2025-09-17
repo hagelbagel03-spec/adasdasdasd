@@ -6645,7 +6645,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         setUser(null);
                         setCurrentTab('incidents');
                       }
-                    }}
+                    }
                   }
                 ]
               );
