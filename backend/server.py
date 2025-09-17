@@ -552,6 +552,7 @@ async def get_users_by_status(current_user: User = Depends(get_current_user)):
             "service_number": user_doc.get("service_number"),
             "rank": user_doc.get("rank"),
             "department": user_doc.get("department"),
+            "team": user_doc.get("team"),  # Team-Zuordnung (Alpha, Bravo, etc.)
             "status": user_status,
             "is_online": is_online,
             "online_status": "Online" if is_online else "Offline",
