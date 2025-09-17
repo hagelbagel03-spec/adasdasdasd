@@ -10152,17 +10152,11 @@ export default function App() {
   );
 }
 
-// Rename MainApp to StadtwacheApp to avoid conflicts
+// Rename MainApp to StadtwacheApp to avoid conflicts  
 const StadtwacheApp = () => {
   // All the main app logic goes here - but we need the complete structure
   return <MainApp />;
-    app_icon: null,
-    organization_name: 'Sicherheitsbehörde Schwelm',
-    primary_color: '#1E40AF',
-    secondary_color: '#3B82F6'
-  });
-
-  const API_URL = "http://212.227.57.238:8001";
+};
 
   // Load app configuration
   const loadAppConfig = async () => {
