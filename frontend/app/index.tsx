@@ -9221,28 +9221,30 @@ Beispielinhalt:
                     </TouchableOpacity>
                   )}
 
-                  {/* Abschließen Button */}
+                  {/* MOBILE OPTIMIZED: Abschließen Button */}
                   <TouchableOpacity
-                    style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
-                    onPress={() => {
-                      Alert.alert(
-                        '✅ Vorfall abschließen',
-                        `"${selectedIncident.title}" abschließen?`,
-                        [
-                          { text: 'Abbrechen', style: 'cancel' },
-                          {
-                            text: 'Abschließen',
-                            onPress: () => {
-                              completeIncident(selectedIncident.id, selectedIncident.title);
-                              setShowIncidentDetailModal(false);
-                            }
-                          }
-                        ]
-                      );
+                    style={[dynamicStyles.actionButton, { 
+                      backgroundColor: colors.success, 
+                      marginBottom: isSmallScreen ? 8 : 12,
+                      paddingVertical: isSmallScreen ? 12 : 16,
+                      minHeight: 48, // Mobile touch target
+                    }]}
+                    onPress={async () => {
+                      try {
+                        await completeIncident(selectedIncident.id, selectedIncident.title);
+                        setShowIncidentDetailModal(false);
+                      } catch (error) {
+                        console.error('Complete incident error:', error);
+                        Alert.alert('Fehler', 'Vorfall konnte nicht abgeschlossen werden.');
+                      }
                     }}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                    <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
+                    <Ionicons name="checkmark-done" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
+                    <Text style={[dynamicStyles.actionButtonText, { 
+                      color: '#FFFFFF',
+                      fontSize: isSmallScreen ? 14 : 16
+                    }]}>
                       ✅ ABGESCHLOSSEN
                     </Text>
                   </TouchableOpacity>
