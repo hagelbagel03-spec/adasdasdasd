@@ -10131,6 +10131,19 @@ Beispielinhalt:
     );
   };
 
+  // Return der Hauptkomponente
+  return (
+    <ThemeProvider>
+      {/* Alle Komponenten hier */}
+      <SafeAreaView style={{ flex: 1 }}>
+        <StatusBar />
+        {loading ? renderLoadingScreen() : isAuthenticated ? renderMainContent() : renderLoginScreen()}
+        {renderModals()}
+      </SafeAreaView>
+    </ThemeProvider>
+  );
+};
+
 // Main App Component
 export default function App() {
   return (
