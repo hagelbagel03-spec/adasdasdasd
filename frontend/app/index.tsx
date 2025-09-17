@@ -1990,6 +1990,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log(`📊 Update Report Status: ${reportId} -> ${newStatus}`);
       
+      // Status-Text Mapping ZUERST definieren
+      const statusText = {
+        'in_progress': 'IN BEARBEITUNG',
+        'completed': 'ABGESCHLOSSEN', 
+        'archived': 'ARCHIVIERT'
+      };
+      
       // Get current report data first
       const currentReport = reports.find(r => r.id === reportId) || selectedReport;
       
@@ -2005,13 +2012,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.put(`${BACKEND_BASE_URL}/api/reports/${reportId}`, updateData, config);
       
-      const statusText = {
-        'in_progress': 'IN BEARBEITUNG',
-        'completed': 'ABGESCHLOSSEN', 
-        'archived': 'ARCHIVIERT'
-      }[newStatus] || newStatus.toUpperCase();
+      const statusDisplayText = statusText[newStatus] || newStatus.toUpperCase();
       
-      Alert.alert('✅ Erfolg', `Bericht "${reportTitle}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert('✅ Erfolg', `Bericht "${reportTitle}" wurde auf "${statusDisplayText}" gesetzt!`);
       
       // Reload reports
       await loadReports();
