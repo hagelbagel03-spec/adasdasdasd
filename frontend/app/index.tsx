@@ -203,11 +203,11 @@ const BACKEND_BASE_URL = "http://localhost:8001";
       if (savedToken && savedUser) {
         console.log('🔐 Gespeicherte Login-Daten gefunden');
         
-        // Validiere Token mit Backend
+        // Validiere Token mit Backend - KURZER TIMEOUT
         try {
           const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
             headers: { Authorization: `Bearer ${savedToken}` },
-            timeout: 5000 // 5 Sekunden Timeout
+            timeout: 2000 // Nur 2 Sekunden Timeout
           });
           
           console.log('✅ Token noch gültig, Auto-Login...');
