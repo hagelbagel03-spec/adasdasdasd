@@ -487,6 +487,11 @@ async def root():
 # Include router
 app.include_router(api_router)
 
+# Root route für direkte Backend-Zugriffe
+@app.get("/")
+async def root():
+    return {"message": "Stadtwache Backend API", "version": "1.0.0", "status": "running", "api_docs": "/docs"}
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
