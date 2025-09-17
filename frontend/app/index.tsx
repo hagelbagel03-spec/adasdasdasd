@@ -3332,10 +3332,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 16,
       padding: 24,
       alignItems: 'center',
-      shadowColor: '#DC2626',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      boxShadow: '0px 4px 8px rgba(220, 38, 38, 0.3)',
       elevation: 8,
     },
     sosSendButtonText: {
