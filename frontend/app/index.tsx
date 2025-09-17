@@ -9189,9 +9189,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
-                          updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
-                        }
+                        Alert.alert(
+                          '⚙️ Status ändern', 
+                          `"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Ändern',
+                              onPress: () => updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="cog" size={20} color="#FFFFFF" />
