@@ -8974,29 +8974,7 @@ Beispielinhalt:
                   )}
                   
                   {/* Status Ändern Buttons */}
-                  {selectedPerson.status !== 'gefunden' && (
-                    <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
-                      onPress={() => {
-                        Alert.alert(
-                          '✅ Person gefunden',
-                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Gefunden',
-                              onPress: () => updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`)
-                            }
-                          ]
-                        );
-                      }}
-                    >
-                      <Ionicons name="location" size={20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
-                        ✅ Als gefunden markieren
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  {/* Gefunden Button entfernt */}
                 </View>
 
                 <View style={{ height: 40 }} />
