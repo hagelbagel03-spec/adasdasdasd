@@ -6678,7 +6678,11 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           {user?.role === 'admin' && (
             <TouchableOpacity 
               style={dynamicStyles.addButton}
-              onPress={() => setShowAddUserModal(true)}
+              onPress={() => {
+                console.log('🔍 [DEBUG] Team Benutzer hinzufügen Button gedrückt');
+                setShowAddUserModal(true);
+                console.log('🔍 [DEBUG] showAddUserModal nach setzen:', true);
+              }}
             >
               <Ionicons name="person-add" size={20} color="#FFFFFF" />
             </TouchableOpacity>
