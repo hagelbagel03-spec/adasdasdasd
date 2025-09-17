@@ -10128,9 +10128,8 @@ Beispielinhalt:
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
-  );
-};
+    );
+  };
 
 // Main App Component
 export default function App() {
