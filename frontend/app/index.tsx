@@ -10133,14 +10133,11 @@ Beispielinhalt:
 
   // Return der Hauptkomponente
   return (
-    <ThemeProvider>
-      {/* Alle Komponenten hier */}
-      <SafeAreaView style={{ flex: 1 }}>
-        <StatusBar />
-        {loading ? renderLoadingScreen() : isAuthenticated ? renderMainContent() : renderLoginScreen()}
-        {renderModals()}
-      </SafeAreaView>
-    </ThemeProvider>
+    <SafeAreaView style={{ flex: 1 }}>
+      <StatusBar />
+      {loading ? renderLoadingScreen() : isAuthenticated ? renderMainContent() : renderLoginScreen()}
+      {renderModals()}
+    </SafeAreaView>
   );
 };
 
@@ -10149,13 +10146,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <MainApp />
       </AuthProvider>
     </ThemeProvider>
   );
-}
-
-const AppContent = () => {
+};
   const { user, loading } = useAuth();
   const { colors } = useTheme();
   
