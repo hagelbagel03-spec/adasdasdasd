@@ -1943,27 +1943,36 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     }
   };
 
-  // Report Status Update Functions - FIXED for 422 error
+  // Report Status Update Functions - FIXED for critical errors
   const updateReportStatus = async (reportId, newStatus, reportTitle) => {
     try {
+      console.log(`📊 [DEBUG] Update Report Status: ${reportId} -> ${newStatus}`);
+      console.log(`📊 [DEBUG] Token exists:`, !!token);
+      console.log(`📊 [DEBUG] Selected report:`, selectedReport?.id);
+      console.log(`📊 [DEBUG] Reports count:`, reports.length);
+      
       const config = token ? {
         headers: { Authorization: `Bearer ${token}` }
       } : {};
       
-      console.log(`📊 Update Report Status: ${reportId} -> ${newStatus}`);
-      
-      // Get current report data first
+      // Get current report data with better error handling
       const currentReport = reports.find(r => r.id === reportId) || selectedReport;
       
-      // Send complete report data with updated status
+      if (!currentReport) {
+        console.error('❌ [DEBUG] Current report not found!');
+        Alert.alert('❌ Fehler', 'Bericht-Daten nicht gefunden. Bitte laden Sie die Seite neu.');
+        return;
+      }
+      
+      // Ensure required fields are present
       const updateData = {
-        title: currentReport?.title || reportTitle,
-        content: currentReport?.content || '',
-        shift_date: currentReport?.shift_date || new Date().toISOString().split('T')[0],
-        status: newStatus
+        title: currentReport.title || reportTitle || 'Untitled Report',
+        content: currentReport.content || 'Kein Inhalt vorhanden',
+        shift_date: currentReport.shift_date || new Date().toISOString().split('T')[0]
       };
       
-      console.log('📊 Sending update data:', updateData);
+      console.log('📊 [DEBUG] Validated update data:', updateData);
+      console.log('📊 [DEBUG] API URL:', `${BACKEND_BASE_URL}/api/reports/${reportId}`);
       
       await axios.put(`${BACKEND_BASE_URL}/api/reports/${reportId}`, updateData, config);
       
