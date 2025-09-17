@@ -60,6 +60,8 @@ interface AddUserModalProps {
 }
 
 const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdded, token, theme }) => {
+  console.log('🔍 [DEBUG] AddUserModal rendered with visible:', visible);
+  console.log('🔍 [DEBUG] AddUserModal props:', { visible, token: !!token, theme: !!theme });
   const colors = theme?.colors || {
     primary: '#1E3A8A',
     background: '#F3F4F6',
