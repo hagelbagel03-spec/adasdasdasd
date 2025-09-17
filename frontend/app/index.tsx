@@ -701,17 +701,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     try {
       console.log('🚨 SOS-Alarm wird gesendet...');
       
-      // Vibration/Sound Alarm
+      // Vibration/Sound Alarm - FIXED für Mobile
       if (Platform.OS !== 'web') {
         try {
-          const { Haptics } = require('expo-haptics');
-          if (Haptics) {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 500);
-            setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1000);
-          }
-        } catch (hapticsError) {
-          console.log('⚠️ Haptics nicht verfügbar:', hapticsError.message);
+          // Kein dynamischer Import - verwende direkte Vibration
+          const { Vibration } = require('react-native');
+          
+          // Intensive Alarm-Vibration für SOS
+          Vibration.vibrate([100, 200, 100, 200, 100, 200], false);
+          console.log('📳 SOS Vibration gestartet');
+          
+        } catch (vibrationError) {
+          console.log('⚠️ Vibration nicht verfügbar:', vibrationError.message);
         }
       }
 
