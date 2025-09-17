@@ -83,6 +83,7 @@ class User(BaseModel):
     role: str
     badge_number: Optional[str] = None
     department: Optional[str] = None
+    team: Optional[str] = None  # Team-Zuordnung (Alpha, Bravo, etc.)
     phone: Optional[str] = None
     service_number: Optional[str] = None
     rank: Optional[str] = None
