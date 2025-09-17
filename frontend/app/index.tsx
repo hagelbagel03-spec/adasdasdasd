@@ -7505,9 +7505,25 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.error }]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
-                            deleteIncident(incident.id, incident.title);
-                          }
+                          Alert.alert(
+                            '🗑️ Vorfall löschen',
+                            `"${incident.title}" wirklich löschen?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              {
+                                text: 'Löschen',
+                                style: 'destructive',
+                                onPress: () => {
+                                  try {
+                                    deleteIncident(incident.id, incident.title);
+                                  } catch (error) {
+                                    console.error('❌ Button error:', error);
+                                    Alert.alert('❌ Fehler', 'Aktion fehlgeschlagen. Bitte erneut versuchen.');
+                                  }
+                                }
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="trash" size={16} color="#FFFFFF" />
