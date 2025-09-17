@@ -225,9 +225,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
         password: formData.password,
         role: formData.role,
         department: formData.department || null,
-        team: formData.team || null,
         badge_number: formData.badge_number || null,
-        rank: formData.rank || null,
+        rank: formData.rank || null,  // Dienstgrad wird jetzt übertragen
         phone: formData.phone || null
       };
 
