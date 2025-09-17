@@ -10096,6 +10096,8 @@ Beispielinhalt:
                 }}>Alle Team-Mitglieder werden sofort alarmiert und erhalten Ihren GPS-Standort</Text>
               </View>
 
+            </View>
+
           <ScrollView style={dynamicStyles.profileContent}>
             <View style={dynamicStyles.sosWarningBox}>
               <Text style={dynamicStyles.sosWarningTitle}>⚠️ WICHTIGER HINWEIS</Text>
