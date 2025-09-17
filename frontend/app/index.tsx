@@ -165,49 +165,61 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
   }, []);
 
   const setupAxiosInterceptors = () => {
-    // Response Interceptor für automatische Token-Erneuerung
-    axios.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-        
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
+    // Nur für Mobile - Web hat andere Auth-Mechanismen
+    if (Platform.OS !== 'web') {
+      // Response Interceptor für automatische Token-Erneuerung
+      axios.interceptors.response.use(
+        (response) => response,
+        async (error) => {
+          const originalRequest = error.config;
           
-          console.log('🔄 401 Fehler - Versuche Token-Erneuerung...');
-          
-          try {
-            const savedToken = await AsyncStorage.getItem('stadtwache_token');
-            const savedUser = await AsyncStorage.getItem('stadtwache_user');
+          if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
             
-            if (savedToken && savedUser) {
-              // Teste Token erneut
-              const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
-                headers: { Authorization: `Bearer ${savedToken}` }
-              });
+            console.log('🔄 401 Fehler - Versuche Token-Erneuerung...');
+            
+            try {
+              const savedToken = await AsyncStorage.getItem('stadtwache_token');
+              const savedUser = await AsyncStorage.getItem('stadtwache_user');
               
-              // Token ist wieder gültig
-              console.log('✅ Token wieder gültig nach Server-Neustart');
-              axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-              originalRequest.headers['Authorization'] = `Bearer ${savedToken}`;
-              
-              // Wiederhole Original-Request
-              return axios(originalRequest);
+              if (savedToken && savedUser) {
+                // Teste Token erneut
+                const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
+                  headers: { Authorization: `Bearer ${savedToken}` }
+                });
+                
+                // Token ist wieder gültig
+                console.log('✅ Token wieder gültig nach Server-Neustart');
+                setToken(savedToken);
+                setUser(JSON.parse(savedUser));
+                axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+                setIsAuthenticated(true);
+                
+                // Wiederhole ursprüngliche Anfrage
+                return axios(originalRequest);
+              } else {
+                // Kein Token vorhanden - zurück zur Anmeldung
+                console.log('❌ Kein Token vorhanden');
+                setIsAuthenticated(false);
+                setUser(null);
+                setToken(null);
+                delete axios.defaults.headers.common['Authorization'];
+              }
+            } catch (tokenError) {
+              console.log('❌ Token-Erneuerung fehlgeschlagen:', tokenError.message);
+              setIsAuthenticated(false);
+              setUser(null);
+              setToken(null);
+              delete axios.defaults.headers.common['Authorization'];
             }
-          } catch (retryError) {
-            console.log('❌ Token-Erneuerung fehlgeschlagen, Logout...');
-            // Nur bei echtem Token-Fehler ausloggen
-            await AsyncStorage.removeItem('stadtwache_token');
-            await AsyncStorage.removeItem('stadtwache_user');
-            setUser(null);
-            setToken(null);
-            delete axios.defaults.headers.common['Authorization'];
           }
+          
+          return Promise.reject(error);
         }
-        
-        return Promise.reject(error);
-      }
-    );
+      );
+    } else {
+      console.log('🌐 Web-Modus: Axios-Interceptor deaktiviert');
+    }
   };
 
   const checkAuthState = async () => {
