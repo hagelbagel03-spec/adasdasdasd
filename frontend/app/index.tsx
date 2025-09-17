@@ -6068,10 +6068,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       borderRadius: 12,
       overflow: 'hidden',
       elevation: 4,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
+      boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.25)',
     },
     mapPreview: {
       backgroundColor: colors.surface,
