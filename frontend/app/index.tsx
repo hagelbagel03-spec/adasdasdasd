@@ -137,8 +137,17 @@ const AuthProvider = ({ children }) => {
 const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
-    checkAuthState();
-    setupAxiosInterceptors();
+    // WEB-BUG FIX: Keine API-Calls für Web die die Seite überschreiben
+    if (Platform.OS !== 'web') {
+      checkAuthState();
+      setupAxiosInterceptors();
+    } else {
+      console.log('🌐 Web-Modus: API-Calls deaktiviert');
+      setIsAuthenticated(false);
+      setUser(null);
+      setToken(null);
+      setLoading(false);
+    }
   }, []);
 
   const setupAxiosInterceptors = () => {
