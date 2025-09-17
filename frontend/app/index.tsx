@@ -10125,7 +10125,6 @@ Beispielinhalt:
               <Text style={dynamicStyles.sosSendButtonSubtext}>Alle Team-Mitglieder werden sofort alarmiert</Text>
             </TouchableOpacity>
           </ScrollView>
-          </View>
         </SafeAreaView>
       </Modal>
     );
