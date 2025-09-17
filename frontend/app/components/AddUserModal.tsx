@@ -185,8 +185,15 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
-
+    console.log('🆕 [DEBUG] handleSubmit gestartet');
+    console.log('🆕 [DEBUG] FormData:', formData);
+    
+    if (!validateForm()) {
+      console.log('❌ [DEBUG] Validation fehlgeschlagen');
+      return;
+    }
+    
+    console.log('✅ [DEBUG] Validation erfolgreich');
     setLoading(true);
 
     try {
