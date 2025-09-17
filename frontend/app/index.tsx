@@ -7072,7 +7072,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           <View style={dynamicStyles.headerTextContainer}>
             <Text style={dynamicStyles.modernTitle}>Personendatenbank</Text>
             <Text style={dynamicStyles.modernSubtitle}>
-              🔍 Gesuchte • ⚠️ Vermisste • ✅ Gefundene Personen
+              🔍 Gesuchte • ⚠️ Vermisste Personen
             </Text>
           </View>
         </View>
