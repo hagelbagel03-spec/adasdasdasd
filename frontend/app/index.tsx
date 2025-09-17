@@ -9042,9 +9042,24 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
-                          updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
-                        }
+                        Alert.alert(
+                          '✅ Person gefunden',
+                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Gefunden',
+                              onPress: () => {
+                                try {
+                                  updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
+                                } catch (error) {
+                                  console.error('❌ Button error:', error);
+                                  Alert.alert('❌ Fehler', 'Aktion fehlgeschlagen. Bitte erneut versuchen.');
+                                }
+                              }
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="location" size={20} color="#FFFFFF" />
