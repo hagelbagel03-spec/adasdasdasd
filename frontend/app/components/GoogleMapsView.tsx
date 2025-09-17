@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Alert, 
+  Platform, 
+  Linking, 
+  SafeAreaView,
+  ScrollView,
+  Dimensions 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
-const GoogleMapsView = ({ incident }: { incident: any }) => {
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
+const GoogleMapsView = ({ incident, onClose }: { incident: any; onClose: () => void }) => {
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const colors = {
     text: '#1a1a1a',
     textMuted: '#6c757d',
@@ -13,6 +31,32 @@ const GoogleMapsView = ({ incident }: { incident: any }) => {
     error: '#DC3545',
     warning: '#FFC107',
     success: '#28A745'
+  };
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = async () => {
+    try {
+      setLoading(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Berechtigung erforderlich', 'Standort-Berechtigung wird für die Navigation benötigt.');
+        setLoading(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setCurrentLocation(location.coords);
+    } catch (error) {
+      console.error('Location error:', error);
+      Alert.alert('Fehler', 'Standort konnte nicht ermittelt werden.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCoordinates = () => {
@@ -42,254 +86,425 @@ const GoogleMapsView = ({ incident }: { incident: any }) => {
     }
   };
 
-  if (!coordinates) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.noLocationContainer}>
-          <Ionicons name="location-outline" size={32} color={colors.textMuted} />
-          <Text style={styles.noLocationText}>
-            Keine GPS-Koordinaten verfügbar
-          </Text>
-        </View>
-      </View>
-    );
-  }
+  // FIXED: Mobile optimized Google Maps integration
+  const openInGoogleMaps = async () => {
+    if (!coordinates) {
+      Alert.alert('Fehler', 'Keine Koordinaten verfügbar.');
+      return;
+    }
 
-  const openInGoogleMaps = () => {
-    console.log('🗺️ Opening Google Maps with coordinates:', coordinates);
+    const { lat, lng } = coordinates;
     
-    if (!coordinates || !coordinates.lat || !coordinates.lng) {
-      Alert.alert('❌ Fehler', 'Keine GPS-Koordinaten verfügbar');
-      return;
-    }
-    
-    const lat = parseFloat(coordinates.lat);
-    const lng = parseFloat(coordinates.lng);
-    
-    if (isNaN(lat) || isNaN(lng)) {
-      Alert.alert('❌ Fehler', 'Ungültige GPS-Koordinaten');
-      return;
-    }
-    
-    const webUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-    
-    if (Platform.OS === 'web') {
-      // @ts-ignore
-      window.open(webUrl, '_blank');
-    } else {
-      // Mobile: Verschiedene URL-Formate probieren
-      const googleMapsApp = Platform.OS === 'ios' 
-        ? `maps://maps.google.com/?q=${lat},${lng}`
-        : `google.navigation:q=${lat},${lng}`;
-      
-      const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}`;
-      
-      console.log('🗺️ Trying Google Maps app:', googleMapsApp);
-      
-      // Versuche Google Maps App zu öffnen
-      Linking.openURL(googleMapsApp).catch(() => {
-        console.log('🗺️ Google Maps app failed, trying geo URL:', geoUrl);
-        // Fallback zu Geo-URL
-        Linking.openURL(geoUrl).catch(() => {
-          console.log('🗺️ Geo URL failed, trying web browser:', webUrl);
-          // Letzter Fallback zu Web-Browser
-          Linking.openURL(webUrl).catch(() => {
-            Alert.alert('❌ Fehler', 'Google Maps konnte nicht geöffnet werden');
-          });
-        });
+    try {
+      // Try to open in Google Maps app first (mobile optimized)
+      const googleMapsUrl = Platform.select({
+        ios: `comgooglemaps://?q=${lat},${lng}&center=${lat},${lng}&zoom=16`,
+        android: `google.navigation:q=${lat},${lng}`,
       });
+
+      const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+      // Check if Google Maps app is available
+      const canOpenGoogleMaps = await Linking.canOpenURL(googleMapsUrl);
+      
+      if (canOpenGoogleMaps) {
+        await Linking.openURL(googleMapsUrl);
+      } else {
+        // Fallback to web version
+        const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
+        if (canOpenFallback) {
+          await Linking.openURL(fallbackUrl);
+        } else {
+          Alert.alert('Fehler', 'Google Maps kann nicht geöffnet werden.');
+        }
+      }
+    } catch (error) {
+      console.error('Maps error:', error);
+      Alert.alert('Fehler', 'Karte konnte nicht geöffnet werden.');
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Interactive Google Maps für Web */}
-      {Platform.OS === 'web' ? (
-        <View style={styles.webMapContainer}>
-          <View style={styles.mapInfoCard}>
-            <View style={[styles.priorityBadge, {
-              backgroundColor: getPriorityColor(incident.priority)
-            }]}>
-              <Text style={styles.priorityText}>
-                {incident.priority?.toUpperCase() || 'NORMAL'} PRIORITÄT
-              </Text>
-            </View>
-            <Text style={styles.incidentTitle}>📍 {incident.title}</Text>
-            <Text style={styles.incidentAddress}>{incident.address}</Text>
-            <Text style={styles.coordinates}>
-              📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-            </Text>
-            
-            <TouchableOpacity 
-              style={styles.openMapsButton}
-              onPress={openInGoogleMaps}
-            >
-              <Ionicons name="map" size={20} color="#FFFFFF" />
-              <Text style={styles.openMapsText}>🗺️ In Google Maps öffnen</Text>
+  const openNavigation = async () => {
+    if (!coordinates || !currentLocation) {
+      Alert.alert('Fehler', 'Navigation nicht möglich. Standort erforderlich.');
+      return;
+    }
+
+    const { lat, lng } = coordinates;
+    
+    try {
+      // Mobile optimized navigation URLs
+      const navigationUrl = Platform.select({
+        ios: `maps://app?saddr=${currentLocation.latitude},${currentLocation.longitude}&daddr=${lat},${lng}&dirflg=d`,
+        android: `google.navigation:q=${lat},${lng}&mode=d`,
+      });
+
+      const fallbackUrl = `https://www.google.com/maps/dir/${currentLocation.latitude},${currentLocation.longitude}/${lat},${lng}`;
+
+      const canOpenNavigation = await Linking.canOpenURL(navigationUrl);
+      
+      if (canOpenNavigation) {
+        await Linking.openURL(navigationUrl);
+      } else {
+        const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
+        if (canOpenFallback) {
+          await Linking.openURL(fallbackUrl);
+        } else {
+          Alert.alert('Fehler', 'Navigation kann nicht gestartet werden.');
+        }
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Fehler', 'Navigation konnte nicht gestartet werden.');
+    }
+  };
+
+  const shareLocation = async () => {
+    if (!coordinates) {
+      Alert.alert('Fehler', 'Keine Koordinaten zum Teilen verfügbar.');
+      return;
+    }
+
+    const { lat, lng } = coordinates;
+    const shareUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    
+    try {
+      // Use system share functionality (mobile optimized)
+      const { Share } = require('react-native');
+      await Share.share({
+        message: `Standort: ${incident?.title || 'Vorfall'}\n${shareUrl}`,
+        title: 'Standort teilen',
+        url: shareUrl,
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+      // Fallback: copy to clipboard
+      Alert.alert(
+        'Standort teilen',
+        `Standort-Link: ${shareUrl}`,
+        [
+          { text: 'OK', onPress: () => {} }
+        ]
+      );
+    }
+  };
+
+  const mobileStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.surface,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    headerTitle: {
+      fontSize: isSmallScreen ? 18 : 20,
+      fontWeight: 'bold',
+      color: colors.text,
+      flex: 1,
+      marginRight: 16,
+    },
+    closeButton: {
+      padding: 8,
+      borderRadius: 8,
+      backgroundColor: colors.border,
+    },
+    content: {
+      flex: 1,
+      padding: 16,
+    },
+    incidentCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    incidentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    priorityBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginRight: 8,
+    },
+    priorityText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: 'white',
+    },
+    incidentTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    incidentDescription: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginBottom: 16,
+      lineHeight: 20,
+    },
+    locationSection: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    locationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    locationTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginLeft: 8,
+    },
+    coordinatesText: {
+      fontSize: 14,
+      color: colors.textMuted,
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+    addressText: {
+      fontSize: 14,
+      color: colors.text,
+      marginTop: 4,
+    },
+    actionButtons: {
+      gap: 12,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    primaryButton: {
+      backgroundColor: colors.primary,
+    },
+    successButton: {
+      backgroundColor: colors.success,
+    },
+    warningButton: {
+      backgroundColor: colors.warning,
+    },
+    actionButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: colors.textMuted,
+    },
+    noLocationContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 40,
+    },
+    noLocationText: {
+      fontSize: 16,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 16,
+      lineHeight: 24,
+    },
+    distanceInfo: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    distanceText: {
+      fontSize: 14,
+      color: colors.text,
+      textAlign: 'center',
+    },
+  });
+
+  const calculateDistance = () => {
+    if (!coordinates || !currentLocation) return null;
+    
+    const R = 6371; // Earth's radius in km
+    const dLat = (coordinates.lat - currentLocation.latitude) * Math.PI / 180;
+    const dLng = (coordinates.lng - currentLocation.longitude) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(currentLocation.latitude * Math.PI / 180) * Math.cos(coordinates.lat * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`;
+  };
+
+  if (!coordinates) {
+    return (
+      <SafeAreaView style={mobileStyles.container}>
+        <View style={mobileStyles.header}>
+          <View style={mobileStyles.headerContent}>
+            <Text style={mobileStyles.headerTitle}>🗺️ Standort-Karte</Text>
+            <TouchableOpacity style={mobileStyles.closeButton} onPress={onClose}>
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
-      ) : (
-        <View style={styles.nativeMapPlaceholder}>
-          <Ionicons name="map" size={48} color={colors.primary} />
-          <Text style={styles.mapTitle}>🗺️ Live Google Maps</Text>
-          <Text style={styles.mapSubtitle}>📍 {incident.address}</Text>
-          <Text style={styles.coordinates}>
-            📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+        
+        <View style={mobileStyles.noLocationContainer}>
+          <Ionicons name="location-outline" size={64} color={colors.textMuted} />
+          <Text style={mobileStyles.noLocationText}>
+            Für diesen Vorfall sind keine Standortdaten verfügbar.
+            {'\n\n'}GPS-Koordinaten konnten nicht gefunden werden.
           </Text>
-          
-          <TouchableOpacity 
-            style={styles.openMapsButton}
-            onPress={openInGoogleMaps}
-          >
-            <Ionicons name="navigate" size={20} color="#FFFFFF" />
-            <Text style={styles.openMapsText}>In Google Maps öffnen</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={mobileStyles.container}>
+        <View style={mobileStyles.header}>
+          <View style={mobileStyles.headerContent}>
+            <Text style={mobileStyles.headerTitle}>🗺️ Standort-Karte</Text>
+            <TouchableOpacity style={mobileStyles.closeButton} onPress={onClose}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={mobileStyles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={mobileStyles.loadingText}>GPS wird initialisiert...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const distance = calculateDistance();
+
+  return (
+    <SafeAreaView style={mobileStyles.container}>
+      <View style={mobileStyles.header}>
+        <View style={mobileStyles.headerContent}>
+          <Text style={mobileStyles.headerTitle}>🗺️ Standort-Karte</Text>
+          <TouchableOpacity style={mobileStyles.closeButton} onPress={onClose}>
+            <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
-      )}
-      
-      {/* Info Overlay nur für Web */}
-      {Platform.OS === 'web' && (
-        <View style={styles.infoOverlay}>
-          <View style={[styles.priorityBadge, {
-            backgroundColor: getPriorityColor(incident.priority)
-          }]}>
-            <Text style={styles.priorityText}>
-              {incident.priority?.toUpperCase() || 'NORMAL'} PRIORITÄT
+      </View>
+
+      <ScrollView style={mobileStyles.content}>
+        <View style={mobileStyles.incidentCard}>
+          <View style={mobileStyles.incidentHeader}>
+            <View style={[
+              mobileStyles.priorityBadge, 
+              { backgroundColor: getPriorityColor(incident?.priority) }
+            ]}>
+              <Text style={mobileStyles.priorityText}>
+                {incident?.priority?.toUpperCase() || 'NORMAL'}
+              </Text>
+            </View>
+          </View>
+          
+          <Text style={mobileStyles.incidentTitle}>
+            {incident?.title || 'Unbekannter Vorfall'}
+          </Text>
+          <Text style={mobileStyles.incidentDescription}>
+            {incident?.description || 'Keine Beschreibung verfügbar'}
+          </Text>
+        </View>
+
+        <View style={mobileStyles.locationSection}>
+          <View style={mobileStyles.locationHeader}>
+            <Ionicons name="location" size={20} color={colors.primary} />
+            <Text style={mobileStyles.locationTitle}>GPS-Koordinaten</Text>
+          </View>
+          <Text style={mobileStyles.coordinatesText}>
+            {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+          </Text>
+          {incident?.address && (
+            <Text style={mobileStyles.addressText}>{incident.address}</Text>
+          )}
+        </View>
+
+        {distance && (
+          <View style={mobileStyles.distanceInfo}>
+            <Text style={mobileStyles.distanceText}>
+              📍 Entfernung zu Ihrem Standort: {distance}
             </Text>
           </View>
-          <Text style={styles.addressText}>📍 {incident.address}</Text>
+        )}
+
+        <View style={mobileStyles.actionButtons}>
+          <TouchableOpacity
+            style={[mobileStyles.actionButton, mobileStyles.primaryButton]}
+            onPress={openInGoogleMaps}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="map" size={20} color="white" />
+            <Text style={mobileStyles.actionButtonText}>🗺️ In Google Maps öffnen</Text>
+          </TouchableOpacity>
+
+          {currentLocation && (
+            <TouchableOpacity
+              style={[mobileStyles.actionButton, mobileStyles.successButton]}
+              onPress={openNavigation}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="navigate" size={20} color="white" />
+              <Text style={mobileStyles.actionButtonText}>🧭 Navigation starten</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[mobileStyles.actionButton, mobileStyles.warningButton]}
+            onPress={shareLocation}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="share" size={20} color="white" />
+            <Text style={mobileStyles.actionButtonText}>📤 Standort teilen</Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 8,
-    height: 300,
-  },
-  webMapContainer: {
-    flex: 1,
-    backgroundColor: '#2196F3',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  mapInfoCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    minWidth: 280,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-  },
-  incidentTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  incidentAddress: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  nativeMapPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 20,
-  },
-  mapTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  mapSubtitle: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  coordinates: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginTop: 8,
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-  openMapsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  openMapsText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  infoOverlay: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  priorityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  priorityText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#1a1a1a',
-    fontWeight: '500',
-  },
-  noLocationContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    backgroundColor: '#f8f9fa',
-  },
-  noLocationText: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-});
 
 export default GoogleMapsView;
