@@ -8253,6 +8253,11 @@ Beispielinhalt:
                       <Image 
                         source={{ uri: reportFormData.images[0] }} 
                         style={dynamicStyles.incidentPhotoPreview}
+                        onError={(error) => {
+                          console.log('❌ Image load error:', error);
+                          Alert.alert('Fehler', 'Bild konnte nicht geladen werden');
+                        }}
+                        onLoad={() => console.log('✅ Image loaded successfully')}
                       />
                       <View style={dynamicStyles.photoOverlay}>
                         <Ionicons name="camera" size={20} color="#FFFFFF" />
