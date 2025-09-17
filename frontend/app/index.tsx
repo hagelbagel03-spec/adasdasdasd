@@ -3941,15 +3941,24 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       textAlign: 'center',
     },
     
-    // Action Buttons
+    // Action Buttons - MOBILE OPTIMIERT
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: colors.secondary,
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderRadius: 16,
       marginTop: 8,
+      // Mobile: Mindest-Touch-Target von 44px/48px
+      minHeight: BUTTON_HEIGHT,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3, // Android shadow
+      gap: 8, // Mobile: Abstand zwischen Icon und Text
     },
     actionText: {
       fontSize: 16,
