@@ -30,7 +30,106 @@ import GoogleMapsView from './components/GoogleMapsView';
 
 const { width, height } = Dimensions.get('window');
 
-// Theme Context für Dark/Light Mode
+// PROFESSIONAL MODERN DESIGN SYSTEM 2024
+const isSmallScreen = width < 400;
+const isMediumScreen = width >= 400 && width < 600;
+const isLargeScreen = width >= 600;
+
+// MODERN DESIGN TOKENS - PROFESSIONAL SYSTEM
+const DESIGN_SYSTEM = {
+  colors: {
+    // Professional Blue Palette
+    primary: {
+      50: '#EBF8FF',
+      100: '#BEE3F8',
+      200: '#90CDF4',
+      300: '#63B3ED',
+      400: '#4299E1',
+      500: '#3182CE', // Main primary
+      600: '#2B6CB0',
+      700: '#2C5282',
+      800: '#2A4365',
+      900: '#1A365D',
+    },
+    // Professional Gray Palette
+    neutral: {
+      50: '#F7FAFC',
+      100: '#EDF2F7',
+      200: '#E2E8F0',
+      300: '#CBD5E1',
+      400: '#A0AEC0',
+      500: '#718096',
+      600: '#4A5568',
+      700: '#2D3748',
+      800: '#1A202C',
+      900: '#171923',
+    },
+    // Status Colors
+    success: '#48BB78',
+    warning: '#ED8936',
+    error: '#F56565',
+    info: '#4299E1',
+  },
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    xxl: 48,
+    xxxl: 64,
+  },
+  borderRadius: {
+    sm: 6,
+    md: 10,
+    lg: 16,
+    xl: 20,
+    xxl: 24,
+    full: 9999,
+  },
+  shadows: {
+    sm: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    md: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    lg: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    xl: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 20 },
+      shadowOpacity: 0.25,
+      shadowRadius: 25,
+      elevation: 12,
+    },
+  },
+  typography: {
+    xs: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
+    sm: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
+    base: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
+    lg: { fontSize: 18, lineHeight: 28, fontWeight: '500' },
+    xl: { fontSize: 20, lineHeight: 28, fontWeight: '600' },
+    '2xl': { fontSize: 24, lineHeight: 32, fontWeight: '700' },
+    '3xl': { fontSize: 30, lineHeight: 36, fontWeight: '800' },
+    '4xl': { fontSize: 36, lineHeight: 40, fontWeight: '900' },
+  },
+};
+
+// PROFESSIONAL THEME CONTEXT WITH MODERN COLORS
 const ThemeContext = createContext();
 
 const useTheme = () => {
