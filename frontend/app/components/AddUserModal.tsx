@@ -231,7 +231,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
 
       console.log('👤 Creating user:', userData);
 
-      const response = await axios.post(`${BACKEND_URL}/api/auth/register`, userData, config);
+      const response = await axios.post(`${BACKEND_URL}/auth/register`, userData, config);
       
       console.log('✅ User created successfully:', response.data);
 
