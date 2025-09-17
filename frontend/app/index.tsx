@@ -10151,13 +10151,6 @@ export default function App() {
     </ThemeProvider>
   );
 };
-  const { user, loading } = useAuth();
-  const { colors } = useTheme();
-  
-  // App Configuration States
-  const [appConfig, setAppConfig] = useState({
-    app_name: 'Stadtwache',
-    app_subtitle: 'Polizei Management System',
     app_icon: null,
     organization_name: 'Sicherheitsbehörde Schwelm',
     primary_color: '#1E40AF',
