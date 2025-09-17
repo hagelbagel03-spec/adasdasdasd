@@ -138,7 +138,7 @@ const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   
-const BACKEND_BASE_URL = "/api";
+const BACKEND_BASE_URL = "http://localhost:8001";
 
   useEffect(() => {
     checkAuthState();
