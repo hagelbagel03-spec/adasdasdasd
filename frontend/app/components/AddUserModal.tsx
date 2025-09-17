@@ -788,7 +788,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
               ) : (
                 <>
                   <Ionicons name="person-add" size={20} color="#FFFFFF" />
-                  <Text style={dynamicStyles.submitButtonText}>Benutzer erstellen</Text>
+                  <Text style={dynamicStyles.submitButtonText}>Hinzufügen</Text>
                 </>
               )}
             </TouchableOpacity>
