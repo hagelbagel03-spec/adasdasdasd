@@ -1752,7 +1752,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       if (permissionResult.granted === false) {
         Alert.alert('📷 Berechtigung erforderlich', 'Berechtigung für Kamera-Zugriff erforderlich');
-        return;
+        return null;
       }
 
       const result = await ImagePicker.launchCameraAsync({
@@ -1764,15 +1764,21 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       if (!result.canceled && result.assets[0].base64) {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Für Incident-Form
         setIncidentFormData({
           ...incidentFormData,
           photo: base64Image
         });
+        
         console.log('📷 Incident photo taken');
+        return base64Image; // Gebe das Image für andere Uses zurück
       }
+      return null;
     } catch (error) {
       console.error('❌ Camera error:', error);
       Alert.alert('❌ Fehler', 'Fehler beim Aufnehmen des Fotos');
+      return null;
     }
   };
 
