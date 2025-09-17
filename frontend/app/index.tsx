@@ -9957,8 +9957,9 @@ Beispielinhalt:
                     </Text>
                   </View>
                   <View style={dynamicStyles.incidentActions}>
+                    {/* MOBILE OPTIMIZED: Nur Details-Button - Karten-Button entfernt */}
                     <TouchableOpacity 
-                      style={[dynamicStyles.mapButton, { backgroundColor: colors.secondary }]}
+                      style={[dynamicStyles.mapButton, { backgroundColor: colors.primary }]}
                       onPress={(e) => {
                         e.stopPropagation();
                         setSelectedIncident(incident);
@@ -9969,7 +9970,7 @@ Beispielinhalt:
                         }, 100);
                       }}
                     >
-                      <Ionicons name="eye" size={18} color="#FFFFFF" />
+                      <Ionicons name="information-circle" size={18} color="#FFFFFF" />
                     </TouchableOpacity>
                     <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
                   </View>
