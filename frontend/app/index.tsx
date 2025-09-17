@@ -1715,7 +1715,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       if (permissionResult.granted === false) {
         Alert.alert('📸 Berechtigung erforderlich', 'Berechtigung für Galerie-Zugriff erforderlich');
-        return;
+        return null;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -1728,15 +1728,21 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       if (!result.canceled && result.assets[0].base64) {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Für Incident-Form
         setIncidentFormData({
           ...incidentFormData,
           photo: base64Image
         });
+        
         console.log('📸 Incident photo selected');
+        return base64Image; // Gebe das Image für andere Uses zurück
       }
+      return null;
     } catch (error) {
       console.error('❌ Image picker error:', error);
       Alert.alert('❌ Fehler', 'Fehler beim Auswählen des Bildes');
+      return null;
     }
   };
 
