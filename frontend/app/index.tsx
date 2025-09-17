@@ -28,7 +28,11 @@ import AddUserModal from './components/AddUserModal';
 import DiscordMessages from './components/DiscordMessages';
 import GoogleMapsView from './components/GoogleMapsView';
 
-const { width, height } = Dimensions.get('window');
+// Mobile-first responsive design
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+const isMediumScreen = screenWidth >= 400 && screenWidth < 600;
+const isLargeScreen = screenWidth >= 600;
 
 // Theme Context für Dark/Light Mode
 const ThemeContext = createContext();
