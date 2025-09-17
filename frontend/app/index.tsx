@@ -7285,7 +7285,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       {
                         color: person.status === 'vermisst' ? colors.warning :
                                person.status === 'gesucht' ? colors.error :
-                               person.status === 'gefunden' ? colors.success : colors.primary
+                               colors.primary
                       }
                     ]}>
                       📊 Status: {person.status === 'vermisst' ? '⚠️ Vermisst' :
