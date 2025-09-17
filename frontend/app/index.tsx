@@ -9192,27 +9192,31 @@ Beispielinhalt:
                     </TouchableOpacity>
                   )}
 
-                  {/* In Bearbeitung Button - Incident auf in_progress setzen */}
+                  {/* MOBILE OPTIMIZED: In Bearbeitung Button - Incident auf in_progress setzen */}
                   {selectedIncident.status !== 'in_progress' && (
                     <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
-                      onPress={() => {
-                        Alert.alert(
-                          '⚙️ Status ändern',
-                          `"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`,
-                          [
-                            { text: 'Abbrechen', style: 'cancel' },
-                            {
-                              text: 'Ändern',
-                              onPress: () => updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title)
-                            }
-                          ]
-                        );
+                      style={[dynamicStyles.actionButton, { 
+                        backgroundColor: colors.warning, 
+                        marginBottom: isSmallScreen ? 8 : 12,
+                        paddingVertical: isSmallScreen ? 12 : 16,
+                        minHeight: 48, // Mobile touch target
+                      }]}
+                      onPress={async () => {
+                        try {
+                          await updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
+                        } catch (error) {
+                          console.error('Update status error:', error);
+                          Alert.alert('Fehler', 'Status konnte nicht aktualisiert werden.');
+                        }
                       }}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons name="cog" size={20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
-                        ⚙️ IN BEARBEITUNG
+                      <Ionicons name="time" size={isSmallScreen ? 18 : 20} color="#FFFFFF" />
+                      <Text style={[dynamicStyles.actionButtonText, { 
+                        color: '#FFFFFF',
+                        fontSize: isSmallScreen ? 14 : 16
+                      }]}>
+                        ⚡ IN BEARBEITUNG
                       </Text>
                     </TouchableOpacity>
                   )}
