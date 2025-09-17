@@ -112,6 +112,7 @@ class UserUpdate(BaseModel):
     service_number: Optional[str] = None
     rank: Optional[str] = None
     department: Optional[str] = None
+    team: Optional[str] = None  # Team-Zuordnung (Alpha, Bravo, etc.)
     status: Optional[str] = None
     photo: Optional[str] = None
 
