@@ -906,6 +906,35 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
                 />
               </View>
 
+              {/* Dienstgrad */}
+              <View style={{ marginBottom: isSmallScreen ? 16 : 20 }}>
+                <Text style={{
+                  fontSize: isSmallScreen ? 14 : 16,
+                  fontWeight: '600',
+                  color: colors.text,
+                  marginBottom: 8,
+                }}>
+                  🎖️ Dienstgrad
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.background,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: isSmallScreen ? 12 : 16,
+                    paddingVertical: isSmallScreen ? 12 : 14,
+                    fontSize: isSmallScreen ? 16 : 18,
+                    color: colors.text,
+                    minHeight: 48,
+                  }}
+                  value={formData.rank}
+                  onChangeText={(text) => updateField('rank', text)}
+                  placeholder="z.B. Polizeihauptmeister, Kommissar"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+
               {/* Phone */}
               <View>
                 <Text style={{
