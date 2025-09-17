@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 # from bson import ObjectId
-import socketio
+import python_socketio as socketio
 import os
 import logging
 from pathlib import Path
