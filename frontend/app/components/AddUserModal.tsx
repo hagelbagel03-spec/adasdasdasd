@@ -807,16 +807,29 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
               />
             </View>
 
-            {/* Rank Selection */}
+            {/* Rank Selection - MOBILE OPTIMIERT */}
             <View style={dynamicStyles.formGroup}>
               <Text style={dynamicStyles.formLabel}>🎖️ Dienstgrad</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={true}
+                style={{ 
+                  maxHeight: isMobile ? 120 : 80,
+                  minHeight: isMobile ? 60 : 50,
+                }}
+                contentContainerStyle={{ 
+                  flexDirection: 'row', 
+                  gap: 8, 
+                  paddingVertical: 8,
+                  paddingHorizontal: 4,
+                }}
+              >
                 {[
-                  'Polizeianwärter', 
-                  'Polizeimeister', 
-                  'Polizeihauptmeister', 
-                  'Polizeikommissar', 
-                  'Polizeihauptkommissar',
+                  'Anwärter', 
+                  'Meister', 
+                  'Hauptmeister', 
+                  'Kommissar', 
+                  'Hauptkommissar',
                   'Kriminalrat',
                   'Team Leader',
                   'Einsatzleiter'
@@ -825,19 +838,25 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
                     key={rank}
                     style={[
                       dynamicStyles.pickerButton,
-                      formData.rank === rank && dynamicStyles.pickerButtonActive
+                      formData.rank === rank && dynamicStyles.pickerButtonActive,
+                      {
+                        minWidth: isMobile ? 120 : 100,
+                        paddingHorizontal: isMobile ? 16 : 12,
+                        paddingVertical: isMobile ? 12 : 8,
+                      }
                     ]}
                     onPress={() => updateField('rank', rank)}
                   >
                     <Text style={[
                       dynamicStyles.pickerButtonText,
-                      formData.rank === rank && dynamicStyles.pickerButtonTextActive
+                      formData.rank === rank && dynamicStyles.pickerButtonTextActive,
+                      { fontSize: isMobile ? 14 : 12 }
                     ]}>
                       {rank}
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             </View>
 
             <View style={dynamicStyles.formGroup}>
