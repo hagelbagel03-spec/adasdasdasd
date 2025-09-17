@@ -9988,30 +9988,74 @@ Beispielinhalt:
         </SafeAreaView>
       </Modal>
 
-      {/* SOS Modal */}
+      {/* SOS Modal - MOBILE OPTIMIERT */}
       <Modal
         visible={showSOSModal}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setShowSOSModal(false)}
       >
-        <SafeAreaView style={dynamicStyles.container}>
-          <View style={dynamicStyles.profileModalHeader}>
-            <TouchableOpacity 
-              style={dynamicStyles.profileCloseButton}
-              onPress={() => setShowSOSModal(false)}
-            >
-              <Ionicons name="close" size={24} color={colors.textMuted} />
-            </TouchableOpacity>
-            
-            <View style={dynamicStyles.profileHeaderContent}>
-              <View style={dynamicStyles.sosIconContainer}>
-                <Ionicons name="warning" size={48} color="#FF0000" />
+        <View style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          // Mobile: Vollbildschirm verwenden
+        }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{
+              padding: isMobile ? 16 : 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+            }}>
+              <TouchableOpacity 
+                style={{
+                  position: 'absolute',
+                  top: 20,
+                  left: 20,
+                  padding: 12,
+                  backgroundColor: colors.surface,
+                  borderRadius: 50,
+                  zIndex: 1,
+                }}
+                onPress={() => setShowSOSModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              <View style={{
+                alignItems: 'center',
+                marginBottom: 32,
+              }}>
+                <View style={{
+                  width: isMobile ? 120 : 96,
+                  height: isMobile ? 120 : 96,
+                  backgroundColor: '#FF0000',
+                  borderRadius: isMobile ? 60 : 48,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 24,
+                  shadowColor: '#FF0000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 12,
+                }}>
+                  <Ionicons name="warning" size={isMobile ? 64 : 48} color="#FFFFFF" />
+                </View>
+                <Text style={{
+                  fontSize: isMobile ? 28 : 24,
+                  fontWeight: 'bold',
+                  color: '#FF0000',
+                  marginBottom: 8,
+                  textAlign: 'center',
+                }}>🚨 NOTFALL-ALARM</Text>
+                <Text style={{
+                  fontSize: isMobile ? 18 : 16,
+                  color: colors.textMuted,
+                  textAlign: 'center',
+                  maxWidth: isMobile ? '90%' : '70%',
+                }}>Alle Team-Mitglieder werden sofort alarmiert und erhalten Ihren GPS-Standort</Text>
               </View>
-              <Text style={dynamicStyles.sosModalTitle}>🚨 NOTFALL-ALARM</Text>
-              <Text style={dynamicStyles.sosModalSubtitle}>Alle Team-Mitglieder alarmieren</Text>
-            </View>
-          </View>
 
           <ScrollView style={dynamicStyles.profileContent}>
             <View style={dynamicStyles.sosWarningBox}>
