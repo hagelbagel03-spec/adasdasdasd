@@ -1540,4 +1540,4 @@ async def shutdown_db_client():
 # Server starten
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="212.227.57.238", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
