@@ -3261,10 +3261,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       height: 36,
       borderRadius: 18,
       gap: 4,
-      shadowColor: '#FF0000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.5,
-      shadowRadius: 4,
+      boxShadow: '0px 2px 4px rgba(255, 0, 0, 0.5)',
       elevation: 6,
     },
     sosButtonText: {
