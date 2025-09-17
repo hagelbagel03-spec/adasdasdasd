@@ -10139,18 +10139,23 @@ Beispielinhalt:
       {renderModals()}
     </SafeAreaView>
   );
-};
+}
 
 // Main App Component
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <MainApp />
+        <StadtwacheApp />
       </AuthProvider>
     </ThemeProvider>
   );
-};
+}
+
+// Rename MainApp to StadtwacheApp to avoid conflicts
+const StadtwacheApp = () => {
+  // All the main app logic goes here - but we need the complete structure
+  return <MainApp />;
     app_icon: null,
     organization_name: 'Sicherheitsbehörde Schwelm',
     primary_color: '#1E40AF',
