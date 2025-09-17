@@ -171,42 +171,89 @@ const ThemeProvider = ({ children }) => {
   const theme = {
     isDarkMode,
     toggleTheme,
+    DESIGN_SYSTEM, // Make design tokens available
     colors: isDarkMode ? {
-      // Dark Theme
-      primary: '#3B82F6',          // Professional Blue
-      secondary: '#60A5FA',        // Lighter Blue
-      accent: '#22D3EE',           // Cyan accent
-      success: '#10B981',          // Professional Green
-      warning: '#F59E0B',          // Professional Orange
-      error: '#EF4444',            // Professional Red
-      background: '#0F172A',       // Dark Navy
-      surface: '#1E293B',          // Dark Surface
-      card: '#334155',             // Card Background
-      elevated: '#475569',         // Elevated surfaces
-      text: '#F8FAFC',             // Light text
-      textSecondary: '#CBD5E1',    // Medium text
-      textMuted: '#94A3B8',        // Muted text
-      border: '#475569',           // Dark border
+      // MODERN DARK THEME - PROFESSIONAL 2024
+      primary: DESIGN_SYSTEM.colors.primary[400],          // Bright Blue
+      primaryLight: DESIGN_SYSTEM.colors.primary[300],     // Lighter Blue  
+      primaryDark: DESIGN_SYSTEM.colors.primary[600],      // Darker Blue
+      secondary: DESIGN_SYSTEM.colors.neutral[400],        // Medium Gray
+      accent: '#22D3EE',                                   // Cyan accent
+      
+      // Status Colors
+      success: DESIGN_SYSTEM.colors.success,              // Green
+      warning: DESIGN_SYSTEM.colors.warning,              // Orange  
+      error: DESIGN_SYSTEM.colors.error,                  // Red
+      info: DESIGN_SYSTEM.colors.info,                    // Blue
+      
+      // Professional Background System
+      background: DESIGN_SYSTEM.colors.neutral[900],      // Deep Dark
+      surface: DESIGN_SYSTEM.colors.neutral[800],         // Card Surface
+      surfaceVariant: DESIGN_SYSTEM.colors.neutral[700],  // Variant Surface
+      surfaceElevated: DESIGN_SYSTEM.colors.neutral[750], // Elevated Surface
+      card: DESIGN_SYSTEM.colors.neutral[800],            // Card Background
+      elevated: DESIGN_SYSTEM.colors.neutral[700],        // Elevated surfaces
+      
+      // Modern Text Hierarchy
+      text: DESIGN_SYSTEM.colors.neutral[50],             // Primary Text
+      textSecondary: DESIGN_SYSTEM.colors.neutral[300],   // Secondary Text
+      textMuted: DESIGN_SYSTEM.colors.neutral[400],       // Muted Text
+      textDisabled: DESIGN_SYSTEM.colors.neutral[600],    // Disabled Text
+      
+      // Professional Border System
+      border: DESIGN_SYSTEM.colors.neutral[600],          // Default Border
+      borderLight: DESIGN_SYSTEM.colors.neutral[700],     // Light Border
+      borderStrong: DESIGN_SYSTEM.colors.neutral[500],    // Strong Border
+      
+      // Interactive States  
+      successLight: DESIGN_SYSTEM.colors.success + '20',
+      warningLight: DESIGN_SYSTEM.colors.warning + '20',
+      errorLight: DESIGN_SYSTEM.colors.error + '20',
+      infoLight: DESIGN_SYSTEM.colors.info + '20',
+      
       shadow: 'rgba(0, 0, 0, 0.4)',
       overlay: 'rgba(0, 0, 0, 0.6)',
     } : {
-      // Light Theme
-      primary: '#1E40AF',          // Professional Blue
-      secondary: '#3B82F6',        // Lighter Blue
-      accent: '#06B6D4',           // Cyan accent
-      success: '#059669',          // Professional Green
-      warning: '#D97706',          // Professional Orange
-      error: '#DC2626',            // Professional Red
-      background: '#F8FAFC',       // Soft White
-      surface: '#FFFFFF',          // Pure White
-      card: '#FFFFFF',             // Card Background
-      elevated: '#F1F5F9',         // Elevated surfaces
-      text: '#0F172A',             // Dark text
-      textSecondary: '#334155',    // Medium text
-      textMuted: '#64748B',        // Light text
-      border: '#E2E8F0',           // Light border
-      shadow: 'rgba(15, 23, 42, 0.08)',
-      overlay: 'rgba(15, 23, 42, 0.4)',
+      // MODERN LIGHT THEME - PROFESSIONAL 2024
+      primary: DESIGN_SYSTEM.colors.primary[600],          // Professional Blue
+      primaryLight: DESIGN_SYSTEM.colors.primary[500],     // Lighter Blue
+      primaryDark: DESIGN_SYSTEM.colors.primary[700],      // Darker Blue
+      secondary: DESIGN_SYSTEM.colors.neutral[600],        // Medium Gray
+      accent: '#06B6D4',                                   // Cyan accent
+      
+      // Status Colors  
+      success: DESIGN_SYSTEM.colors.success,              // Green
+      warning: DESIGN_SYSTEM.colors.warning,              // Orange
+      error: DESIGN_SYSTEM.colors.error,                  // Red
+      info: DESIGN_SYSTEM.colors.info,                    // Blue
+      
+      // Professional Background System
+      background: DESIGN_SYSTEM.colors.neutral[50],       // Soft Background
+      surface: '#FFFFFF',                                  // Pure White Surface
+      surfaceVariant: DESIGN_SYSTEM.colors.neutral[100],  // Variant Surface
+      surfaceElevated: '#FAFAFA',                         // Elevated Surface
+      card: '#FFFFFF',                                     // Card Background
+      elevated: DESIGN_SYSTEM.colors.neutral[100],        // Elevated surfaces
+      
+      // Modern Text Hierarchy
+      text: DESIGN_SYSTEM.colors.neutral[900],            // Primary Text
+      textSecondary: DESIGN_SYSTEM.colors.neutral[700],   // Secondary Text  
+      textMuted: DESIGN_SYSTEM.colors.neutral[500],       // Muted Text
+      textDisabled: DESIGN_SYSTEM.colors.neutral[400],    // Disabled Text
+      
+      // Professional Border System
+      border: DESIGN_SYSTEM.colors.neutral[200],          // Default Border
+      borderLight: DESIGN_SYSTEM.colors.neutral[100],     // Light Border
+      borderStrong: DESIGN_SYSTEM.colors.neutral[300],    // Strong Border
+      
+      // Interactive States
+      successLight: DESIGN_SYSTEM.colors.success + '10',
+      warningLight: DESIGN_SYSTEM.colors.warning + '10', 
+      errorLight: DESIGN_SYSTEM.colors.error + '10',
+      infoLight: DESIGN_SYSTEM.colors.info + '10',
+      
+      shadow: 'rgba(0, 0, 0, 0.1)',
+      overlay: 'rgba(0, 0, 0, 0.4)',
     }
   };
 
