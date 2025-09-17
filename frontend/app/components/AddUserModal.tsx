@@ -512,29 +512,45 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <SafeAreaView style={dynamicStyles.container}>
-        <View style={dynamicStyles.header}>
-          <TouchableOpacity style={dynamicStyles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={dynamicStyles.headerTitle}>👤 Neuen Benutzer hinzufügen</Text>
-          <TouchableOpacity 
-            style={[dynamicStyles.saveButton, loading && dynamicStyles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={dynamicStyles.saveButtonText}>Hinzufügen</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        // Mobile: Angepasstes Padding
+        padding: isMobile ? 8 : 20,
+      }}>
         <KeyboardAvoidingView 
-          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{
+            width: '100%',
+            // Mobile: Maximale Größe nutzen
+            maxWidth: isMobile ? undefined : 500,
+          }}
         >
+          <SafeAreaView style={dynamicStyles.container}>
+            <View style={dynamicStyles.header}>
+              <TouchableOpacity style={dynamicStyles.closeButton} onPress={handleClose}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+              <Text style={dynamicStyles.headerTitle}>👤 Neuen Benutzer hinzufügen</Text>
+              <TouchableOpacity 
+                style={[dynamicStyles.saveButton, loading && dynamicStyles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={dynamicStyles.saveButtonText}>Hinzufügen</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAvoidingView 
+              style={{ flex: 1 }}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
           <ScrollView style={dynamicStyles.content} showsVerticalScrollIndicator={false}>
             
             <View style={dynamicStyles.infoCard}>
