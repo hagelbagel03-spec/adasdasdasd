@@ -232,26 +232,54 @@ const BACKEND_BASE_URL = "http://localhost:8001";
   };
 
   const login = async (email, password) => {
+    console.log('🔐 Login-Versuch mit:', { email, password: '***' });
     try {
       const response = await axios.post(`${BACKEND_BASE_URL}/api/auth/login`, {
         email,
         password
       });
 
+      console.log('✅ Login-Response:', response.data);
+      
       const { access_token, user: userData } = response.data;
       
+      if (!access_token || !userData) {
+        console.error('❌ Unvollständige Login-Response:', response.data);
+        return {
+          success: false,
+          message: 'Unvollständige Server-Antwort'
+        };
+      }
+      
+      console.log('💾 Speichere Login-Daten...');
       setToken(access_token);
       setUser(userData);
       
+      // Speichere für Auto-Login
       await AsyncStorage.setItem('stadtwache_token', access_token);
       await AsyncStorage.setItem('stadtwache_user', JSON.stringify(userData));
       
+      // Setze Authorization Header
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      return { success: true };
+      
+      console.log('✅ Login erfolgreich, User:', userData);
+      
+      return {
+        success: true,
+        user: userData
+      };
+      
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Verbindung zum Server fehlgeschlagen. Bitte versuchen Sie es später erneut.' 
+      console.error('❌ Login-Fehler:', error);
+      console.error('❌ Login-Response:', error.response?.data);
+      
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          'Server fehlgeschlagen. Bitte versuchen Sie es später erneut.';
+      
+      return {
+        success: false,
+        message: errorMessage
       };
     }
   };
