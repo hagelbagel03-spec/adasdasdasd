@@ -56,22 +56,46 @@ const GoogleMapsView = ({ incident }: { incident: any }) => {
   }
 
   const openInGoogleMaps = () => {
-    const url = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
+    console.log('🗺️ Opening Google Maps with coordinates:', coordinates);
+    
+    if (!coordinates || !coordinates.lat || !coordinates.lng) {
+      Alert.alert('❌ Fehler', 'Keine GPS-Koordinaten verfügbar');
+      return;
+    }
+    
+    const lat = parseFloat(coordinates.lat);
+    const lng = parseFloat(coordinates.lng);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      Alert.alert('❌ Fehler', 'Ungültige GPS-Koordinaten');
+      return;
+    }
+    
+    const webUrl = `https://www.google.com/maps?q=${lat},${lng}`;
     
     if (Platform.OS === 'web') {
       // @ts-ignore
-      window.open(url, '_blank');
+      window.open(webUrl, '_blank');
     } else {
-      // Mobile: Use Linking to open Google Maps app or browser
-      const googleMapsUrl = Platform.OS === 'ios' 
-        ? `maps://maps.google.com/?q=${coordinates.lat},${coordinates.lng}`
-        : `geo:${coordinates.lat},${coordinates.lng}?q=${coordinates.lat},${coordinates.lng}`;
+      // Mobile: Verschiedene URL-Formate probieren
+      const googleMapsApp = Platform.OS === 'ios' 
+        ? `maps://maps.google.com/?q=${lat},${lng}`
+        : `google.navigation:q=${lat},${lng}`;
       
-      // Try to open in native maps app first
-      Linking.openURL(googleMapsUrl).catch(() => {
-        // Fallback to web browser
-        Linking.openURL(url).catch(() => {
-          Alert.alert('Fehler', 'Google Maps konnte nicht geöffnet werden');
+      const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}`;
+      
+      console.log('🗺️ Trying Google Maps app:', googleMapsApp);
+      
+      // Versuche Google Maps App zu öffnen
+      Linking.openURL(googleMapsApp).catch(() => {
+        console.log('🗺️ Google Maps app failed, trying geo URL:', geoUrl);
+        // Fallback zu Geo-URL
+        Linking.openURL(geoUrl).catch(() => {
+          console.log('🗺️ Geo URL failed, trying web browser:', webUrl);
+          // Letzter Fallback zu Web-Browser
+          Linking.openURL(webUrl).catch(() => {
+            Alert.alert('❌ Fehler', 'Google Maps konnte nicht geöffnet werden');
+          });
         });
       });
     }
