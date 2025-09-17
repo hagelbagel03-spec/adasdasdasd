@@ -10126,6 +10126,7 @@ Beispielinhalt:
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
+        </View>
       </Modal>
     );
   };
