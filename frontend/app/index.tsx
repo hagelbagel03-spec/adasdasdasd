@@ -8646,18 +8646,7 @@ Beispielinhalt:
                       personFormData.status === 'gesucht' && dynamicStyles.pickerButtonTextActive
                     ]}>🚨 Gesucht</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      dynamicStyles.pickerButton, 
-                      personFormData.status === 'gefunden' && dynamicStyles.pickerButtonActive
-                    ]}
-                    onPress={() => setPersonFormData({...personFormData, status: 'gefunden'})}
-                  >
-                    <Text style={[
-                      dynamicStyles.pickerButtonText,
-                      personFormData.status === 'gefunden' && dynamicStyles.pickerButtonTextActive
-                    ]}>✅ Gefunden</Text>
-                  </TouchableOpacity>
+                  {/* Gefunden Status entfernt */}
                 </View>
               </View>
 
