@@ -8339,7 +8339,7 @@ Beispielinhalt:
           }
         }}
         token={token}
-        theme={{ colors, isDarkMode }}
+        theme={{ colors }} // Theme übergeben
       />
 
       {/* Admin Settings Modal */}
