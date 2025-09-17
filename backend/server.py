@@ -89,6 +89,15 @@ class User(BaseModel):
     status: str = "Im Dienst"  # Im Dienst, Pause, Einsatz, Streife, Nicht verfügbar
     photo: Optional[str] = None  # base64 encoded profile photo
     is_active: bool = True
+    # Neue Profil-Einstellungen
+    notification_sound: str = "default"  # default, siren, beep, chime
+    vibration_pattern: str = "standard"  # standard, intense, pulse, custom
+    battery_saver_mode: bool = False
+    check_in_interval: int = 30  # Minuten
+    assigned_district: Optional[str] = None
+    patrol_team: Optional[str] = None
+    last_check_in: Optional[datetime] = None
+    missed_check_ins: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -112,6 +121,13 @@ class UserUpdate(BaseModel):
     department: Optional[str] = None
     status: Optional[str] = None
     photo: Optional[str] = None
+    # Neue Profil-Einstellungen
+    notification_sound: Optional[str] = None
+    vibration_pattern: Optional[str] = None
+    battery_saver_mode: Optional[bool] = None
+    check_in_interval: Optional[int] = None
+    assigned_district: Optional[str] = None
+    patrol_team: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -236,6 +252,71 @@ class AppConfigurationUpdate(BaseModel):
     organization_name: Optional[str] = None
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
+
+# Admin-spezifische Models
+class District(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    area_description: str
+    coordinates: Optional[Dict[str, float]] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class Team(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    district_id: Optional[str] = None
+    members: List[str] = []  # user IDs
+    leader_id: Optional[str] = None
+    status: str = "Einsatzbereit"  # Einsatzbereit, Im Einsatz, Pause
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class VacationApproval(BaseModel):
+    action: str  # "approve" or "reject"
+    reason: Optional[str] = None
+
+class DistrictCreate(BaseModel):
+    name: str
+    area_description: str
+
+class TeamCreate(BaseModel):
+    name: str
+    district_id: Optional[str] = None
+
+class TeamAssignment(BaseModel):
+    user_id: str
+    team_id: Optional[str] = None
+    district_id: Optional[str] = None
+
+class Vacation(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    user_name: str
+    start_date: datetime
+    end_date: datetime
+    reason: str
+    status: str = "pending"  # pending, approved, rejected
+    approved_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CheckIn(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    user_name: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    location: Optional[Dict[str, float]] = None
+    status: str = "ok"  # ok, emergency, help_needed
+    message: Optional[str] = None
+
+class VacationCreate(BaseModel):
+    start_date: str
+    end_date: str
+    reason: str
+
+class ShiftCreate(BaseModel):
+    team_id: str
+    district_id: str
+    start_time: str
+    end_time: str
 
 # Security functions
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -1514,9 +1595,6 @@ async def root():
     else:
         return {"message": "Stadtwache Server", "version": "1.0.0", "status": "running"}
 
-# Include router
-app.include_router(api_router)
-
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -1532,6 +1610,424 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Schichtverwaltung API Endpoints - Einfache Funktionen
+@app.post("/api/checkin")
+async def check_in(current_user: User = Depends(get_current_user)):
+    """Benutzer Check-In"""
+    try:
+        checkin_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user.id,
+            "user_name": current_user.username,
+            "timestamp": datetime.utcnow(),
+            "status": "ok"
+        }
+        
+        await db.checkins.insert_one(checkin_data)
+        
+        # Update user's last check-in time and reset missed check-ins
+        await db.users.update_one(
+            {"id": current_user.id},
+            {"$set": {"last_check_in": datetime.utcnow(), "missed_check_ins": 0}}
+        )
+        
+        return checkin_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/checkins")
+async def get_checkins(current_user: User = Depends(get_current_user)):
+    """Lade Check-Ins"""
+    try:
+        if current_user.role == "admin":
+            checkins = await db.checkins.find().sort("timestamp", -1).to_list(100)
+        else:
+            checkins = await db.checkins.find({"user_id": current_user.id}).sort("timestamp", -1).to_list(50)
+        
+        return checkins
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/vacations")
+async def request_vacation(vacation_data: VacationCreate, current_user: User = Depends(get_current_user)):
+    """Urlaubsantrag stellen"""
+    try:
+        vacation_dict = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user.id,
+            "user_name": current_user.username,
+            "start_date": vacation_data.start_date,
+            "end_date": vacation_data.end_date,
+            "reason": vacation_data.reason,
+            "status": "pending",
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.vacations.insert_one(vacation_dict)
+        return vacation_dict
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/vacations")
+async def get_vacations(current_user: User = Depends(get_current_user)):
+    """Lade Urlaubsanträge"""
+    try:
+        if current_user.role == "admin":
+            vacations = await db.vacations.find().sort("created_at", -1).to_list(100)
+        else:
+            vacations = await db.vacations.find({"user_id": current_user.id}).sort("created_at", -1).to_list(100)
+        
+        return vacations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin Management Endpoints
+@app.post("/api/admin/districts")
+async def create_district(district_data: DistrictCreate, current_user: User = Depends(get_current_user)):
+    """Bezirk erstellen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    district_dict = district_data.dict()
+    district_dict['id'] = str(uuid.uuid4())
+    district_dict['created_at'] = datetime.utcnow()
+    
+    await db.districts.insert_one(district_dict)
+    return district_dict
+
+@app.get("/api/admin/districts")
+async def get_districts(current_user: User = Depends(get_current_user)):
+    """Alle Bezirke abrufen"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    districts = await db.districts.find().to_list(100)
+    return districts
+
+@app.post("/api/admin/teams")
+async def create_team(team_data: TeamCreate, current_user: User = Depends(get_current_user)):
+    """Team erstellen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    team_dict = team_data.dict()
+    team_dict['id'] = str(uuid.uuid4())
+    team_dict['created_at'] = datetime.utcnow()
+    team_dict['members'] = []
+    team_dict['status'] = 'Einsatzbereit'
+    
+    await db.teams.insert_one(team_dict)
+    return team_dict
+
+@app.get("/api/admin/teams")
+async def get_teams(current_user: User = Depends(get_current_user)):
+    """Alle Teams abrufen"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    teams = await db.teams.find().to_list(100)
+    return teams
+
+@app.put("/api/admin/assign-user")
+async def assign_user_to_team_district(assignment: TeamAssignment, current_user: User = Depends(get_current_user)):
+    """Benutzer zu Team/Bezirk zuweisen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    update_data = {}
+    if assignment.team_id:
+        update_data['patrol_team'] = assignment.team_id
+        # User zu Team hinzufügen
+        await db.teams.update_one(
+            {"id": assignment.team_id},
+            {"$addToSet": {"members": assignment.user_id}}
+        )
+    
+    if assignment.district_id:
+        update_data['assigned_district'] = assignment.district_id
+    
+    # Benutzer aktualisieren
+    result = await db.users.update_one(
+        {"id": assignment.user_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"status": "success", "message": "User assigned successfully"}
+
+@app.put("/api/admin/vacations/{vacation_id}")
+async def handle_vacation_request(vacation_id: str, approval: VacationApproval, current_user: User = Depends(get_current_user)):
+    """Urlaubsantrag genehmigen/ablehnen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    update_data = {
+        "status": "approved" if approval.action == "approve" else "rejected",
+        "approved_by": current_user.id,
+        "admin_reason": approval.reason or ""
+    }
+    
+    result = await db.vacations.update_one(
+        {"id": vacation_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vacation request not found")
+    
+    return {"status": "success", "message": f"Vacation request {approval.action}d"}
+
+@app.get("/api/admin/attendance")
+async def get_attendance_list(current_user: User = Depends(get_current_user)):
+    """Anwesenheitsliste abrufen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    users = await db.users.find({"is_active": True}).to_list(100)
+    
+    attendance_list = []
+    for user in users:
+        # Team-Info abrufen
+        team_info = None
+        if user.get('patrol_team'):
+            team = await db.teams.find_one({"id": user['patrol_team']})
+            team_info = team['name'] if team else None
+        
+        # Bezirk-Info abrufen
+        district_info = None
+        if user.get('assigned_district'):
+            district = await db.districts.find_one({"id": user['assigned_district']})
+            district_info = district['name'] if district else None
+        
+        attendance_list.append({
+            "id": user["id"],
+            "username": user["username"],
+            "status": user.get("status", "Nicht verfügbar"),
+            "team": team_info,
+            "district": district_info,
+            "last_check_in": user.get("last_check_in"),
+            "phone": user.get("phone"),
+            "rank": user.get("rank")
+        })
+    
+    return attendance_list
+
+@app.get("/api/admin/team-status")
+async def get_team_status(current_user: User = Depends(get_current_user)):
+    """Team-Status abrufen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    teams = await db.teams.find().to_list(100)
+    
+    team_status_list = []
+    for team in teams:
+        # Mitglieder-Status prüfen
+        member_count = len(team.get('members', []))
+        active_members = 0
+        
+        if team.get('members'):
+            active_users = await db.users.find({
+                "id": {"$in": team['members']},
+                "status": {"$in": ["Im Dienst", "Einsatz", "Streife"]}
+            }).to_list(100)
+            active_members = len(active_users)
+        
+        # Team-Status basierend auf aktiven Mitgliedern
+        if active_members == 0:
+            status = "Nicht verfügbar"
+        elif active_members == member_count:
+            status = "Einsatzbereit"
+        else:
+            status = "Im Einsatz"
+        
+        team_status_list.append({
+            "id": team["id"],
+            "name": team["name"],
+            "status": status,
+            "total_members": member_count,
+            "active_members": active_members,
+            "district": team.get("district_id")
+        })
+    
+    return team_status_list
+@app.post("/api/admin/districts")
+async def create_district(district_data: DistrictCreate, current_user: User = Depends(get_current_user)):
+    """Bezirk erstellen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    district_dict = district_data.dict()
+    district_dict['id'] = str(uuid.uuid4())
+    district_dict['created_at'] = datetime.utcnow()
+    
+    await db.districts.insert_one(district_dict)
+    return district_dict
+
+@app.get("/api/admin/districts")
+async def get_districts(current_user: User = Depends(get_current_user)):
+    """Alle Bezirke abrufen"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    districts = await db.districts.find().to_list(100)
+    return districts
+
+@app.post("/api/admin/teams")
+async def create_team(team_data: TeamCreate, current_user: User = Depends(get_current_user)):
+    """Team erstellen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    team_dict = team_data.dict()
+    team_dict['id'] = str(uuid.uuid4())
+    team_dict['created_at'] = datetime.utcnow()
+    team_dict['members'] = []
+    team_dict['status'] = 'Einsatzbereit'
+    
+    await db.teams.insert_one(team_dict)
+    return team_dict
+
+@app.get("/api/admin/teams")
+async def get_teams(current_user: User = Depends(get_current_user)):
+    """Alle Teams abrufen"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    teams = await db.teams.find().to_list(100)
+    return teams
+
+@app.put("/api/admin/assign-user")
+async def assign_user_to_team_district(assignment: TeamAssignment, current_user: User = Depends(get_current_user)):
+    """Benutzer zu Team/Bezirk zuweisen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    update_data = {}
+    if assignment.team_id:
+        update_data['patrol_team'] = assignment.team_id
+        # User zu Team hinzufügen
+        await db.teams.update_one(
+            {"id": assignment.team_id},
+            {"$addToSet": {"members": assignment.user_id}}
+        )
+    
+    if assignment.district_id:
+        update_data['assigned_district'] = assignment.district_id
+    
+    # Benutzer aktualisieren
+    result = await db.users.update_one(
+        {"id": assignment.user_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"status": "success", "message": "User assigned successfully"}
+
+@app.put("/api/admin/vacations/{vacation_id}")
+async def handle_vacation_request(vacation_id: str, approval: VacationApproval, current_user: User = Depends(get_current_user)):
+    """Urlaubsantrag genehmigen/ablehnen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    update_data = {
+        "status": "approved" if approval.action == "approve" else "rejected",
+        "approved_by": current_user.id,
+        "admin_reason": approval.reason or ""
+    }
+    
+    result = await db.vacations.update_one(
+        {"id": vacation_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vacation request not found")
+    
+    return {"status": "success", "message": f"Vacation request {approval.action}d"}
+
+@app.get("/api/admin/attendance")
+async def get_attendance_list(current_user: User = Depends(get_current_user)):
+    """Anwesenheitsliste abrufen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    users = await db.users.find({"is_active": True}).to_list(100)
+    
+    attendance_list = []
+    for user in users:
+        # Team-Info abrufen
+        team_info = None
+        if user.get('patrol_team'):
+            team = await db.teams.find_one({"id": user['patrol_team']})
+            team_info = team['name'] if team else None
+        
+        # Bezirk-Info abrufen
+        district_info = None
+        if user.get('assigned_district'):
+            district = await db.districts.find_one({"id": user['assigned_district']})
+            district_info = district['name'] if district else None
+        
+        attendance_list.append({
+            "id": user["id"],
+            "username": user["username"],
+            "status": user.get("status", "Nicht verfügbar"),
+            "team": team_info,
+            "district": district_info,
+            "last_check_in": user.get("last_check_in"),
+            "phone": user.get("phone"),
+            "rank": user.get("rank")
+        })
+    
+    return attendance_list
+
+@app.get("/api/admin/team-status")
+async def get_team_status(current_user: User = Depends(get_current_user)):
+    """Team-Status abrufen (nur Admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    teams = await db.teams.find().to_list(100)
+    
+    team_status_list = []
+    for team in teams:
+        # Mitglieder-Status prüfen
+        member_count = len(team.get('members', []))
+        active_members = 0
+        
+        if team.get('members'):
+            active_users = await db.users.find({
+                "id": {"$in": team['members']},
+                "status": {"$in": ["Im Dienst", "Einsatz", "Streife"]}
+            }).to_list(100)
+            active_members = len(active_users)
+        
+        # Team-Status basierend auf aktiven Mitgliedern
+        if active_members == 0:
+            status = "Nicht verfügbar"
+        elif active_members == member_count:
+            status = "Einsatzbereit"
+        else:
+            status = "Teilweise besetzt"
+        
+        team_status_list.append({
+            "id": team["id"],
+            "name": team["name"],
+            "status": status,
+            "total_members": member_count,
+            "active_members": active_members,
+            "district": team.get("district_id")
+        })
+    
+    return team_status_list
+
+# Include router - MUST be after all endpoint definitions
+app.include_router(api_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
