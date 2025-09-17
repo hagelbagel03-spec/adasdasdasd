@@ -630,10 +630,7 @@ const LoginScreen = ({ appConfig }) => {
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={loading ? [colors.textMuted, colors.textMuted] : [colors.primary, colors.primaryDark]}
-                  style={styles.buttonGradient}
-                >
+                <View style={styles.buttonGradient}>
                   {loading ? (
                     <ActivityIndicator color="white" />
                   ) : (
@@ -642,7 +639,7 @@ const LoginScreen = ({ appConfig }) => {
                       <Text style={styles.loginButtonText}>Anmelden</Text>
                     </>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
 
