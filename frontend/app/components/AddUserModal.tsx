@@ -291,7 +291,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       borderRadius: 12,
     },
     saveButton: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.secondary, // System-Farbe statt primary
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 12,
