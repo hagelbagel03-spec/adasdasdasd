@@ -9223,10 +9223,21 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
                       onPress={() => {
-                        if (window.confirm(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
-                          deleteIncident(selectedIncident.id, selectedIncident.title);
-                          setShowIncidentDetailModal(false);
-                        }
+                        Alert.alert(
+                          '🗑️ Vorfall löschen',
+                          `"${selectedIncident.title}" wirklich löschen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            {
+                              text: 'Löschen',
+                              style: 'destructive',
+                              onPress: () => {
+                                deleteIncident(selectedIncident.id, selectedIncident.title);
+                                setShowIncidentDetailModal(false);
+                              }
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="trash" size={20} color="#FFFFFF" />
