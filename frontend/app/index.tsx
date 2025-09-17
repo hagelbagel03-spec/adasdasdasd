@@ -10246,6 +10246,8 @@ const AppContent = () => {
   const { user, loading } = useAuth();
   const { colors } = useTheme();
   
+  console.log('🏠 AppContent - loading:', loading, 'user:', !!user);
+  
   // App Configuration States
   const [appConfig, setAppConfig] = useState({
     app_name: 'Stadtwache',
