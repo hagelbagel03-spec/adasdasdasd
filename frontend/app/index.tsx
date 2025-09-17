@@ -7227,7 +7227,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       {/* Add Person Button */}
       <TouchableOpacity
-        style={[dynamicStyles.actionButton, { backgroundColor: colors.primary }]}
+        style={[dynamicStyles.actionButton, { backgroundColor: colors.secondary }]}
         onPress={createNewPerson}
       >
         <Ionicons name="person-add" size={20} color="#FFFFFF" />
