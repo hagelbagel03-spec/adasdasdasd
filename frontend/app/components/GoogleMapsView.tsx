@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const GoogleMapsView = ({ incident }: { incident: any }) => {
