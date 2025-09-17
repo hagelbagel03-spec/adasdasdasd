@@ -8523,7 +8523,7 @@ Beispielinhalt:
                               paddingVertical: 4
                             }}>
                               <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '600' }}>
-                                {teamUser.is_online ? 'ONLINE' : 'OFFLINE'}
+                                {teamUser.is_online ? 'ONLINE' : teamUser.status || 'OFFLINE'}
                               </Text>
                             </View>
                           </View>
