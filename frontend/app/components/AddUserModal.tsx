@@ -505,6 +505,28 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
       borderRadius: 15,
       padding: 6,
     },
+    pickerButton: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pickerButtonActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    pickerButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    pickerButtonTextActive: {
+      color: '#FFFFFF',
+    },
   });
 
   const getPasswordStrength = (password: string) => {
