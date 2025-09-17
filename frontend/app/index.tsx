@@ -27,8 +27,12 @@ import * as ImagePicker from 'expo-image-picker';
 import AddUserModal from './components/AddUserModal';
 import DiscordMessages from './components/DiscordMessages';
 import GoogleMapsView from './components/GoogleMapsView';
+import ShiftManagementComponent from './components/ShiftManagementComponent';
 
 const { width, height } = Dimensions.get('window');
+
+// API Configuration
+const API_URL = "http://212.227.57.238:8001";
 
 // MOBILE RESPONSIVE - NUR DIE WICHTIGSTEN FIXES
 const isSmallScreen = width < 400;
@@ -137,8 +141,6 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   useEffect(() => {
     checkAuthState();
@@ -163,7 +165,7 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
             
             if (savedToken && savedUser) {
               // Teste Token erneut
-              const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
+              const response = await axios.get(`${API_URL}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${savedToken}` }
               });
               
@@ -202,7 +204,7 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
         
         // Validiere Token mit Backend
         try {
-          const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
+          const response = await axios.get(`${API_URL}/api/auth/me`, {
             headers: { Authorization: `Bearer ${savedToken}` }
           });
           
@@ -228,7 +230,7 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${BACKEND_BASE_URL}/api/auth/login`, {
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password
       });
@@ -253,7 +255,7 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
   const register = async (userData) => {
     try {
-      const response = await axios.post(`${BACKEND_BASE_URL}/api/auth/register`, userData);
+      const response = await axios.post(`${API_URL}/api/auth/register`, userData);
       return { success: true, user: response.data };
     } catch (error) {
       return { 
@@ -769,7 +771,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       console.log('📡 Sende Notfall-Broadcast:', emergencyData);
       
-      await axios.post(`${BACKEND_BASE_URL}/api/emergency/broadcast`, emergencyData, config);
+      await axios.post(`${API_URL}/api/emergency/broadcast`, emergencyData, config);
       
       setShowSOSModal(false);
       
@@ -800,7 +802,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         };
         
         const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-        await axios.post(`${BACKEND_BASE_URL}/api/emergency/broadcast`, fallbackData, config);
+        await axios.post(`${API_URL}/api/emergency/broadcast`, fallbackData, config);
         
         Alert.alert('🚨 SOS-ALARM GESENDET!', 'Notfall-Alarm wurde gesendet (ohne GPS-Standort)');
         setShowSOSModal(false);
@@ -812,7 +814,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     }
   };
   
-  // Profile states
+  // Profile states  
   const [userStatus, setUserStatus] = useState(user?.status || 'Im Dienst');
   const [profileData, setProfileData] = useState({
     username: user?.username || '',
@@ -820,7 +822,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     service_number: user?.service_number || '',
     rank: user?.rank || '',
     department: user?.department || '',
-    photo: user?.photo || ''
+    photo: user?.photo || '',
+    // Neue Profil-Einstellungen
+    notification_sound: user?.notification_sound || 'default',
+    vibration_pattern: user?.vibration_pattern || 'standard',
+    battery_saver_mode: user?.battery_saver_mode || false,
+    check_in_interval: user?.check_in_interval || 30, // Minuten
+    assigned_district: user?.assigned_district || '',
+    patrol_team: user?.patrol_team || ''
   });
 
   // Incident states
@@ -948,7 +957,36 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const [savingPerson, setSavingPerson] = useState(false);
   const [databaseLoading, setDatabaseLoading] = useState(false);
   
-  const API_URL = "http://212.227.57.238:8001";
+  // Schichtverwaltung States
+  const [shiftManagement, setShiftManagement] = useState({
+    districts: [],
+    teams: [],
+    shifts: [],
+    vacations: [],
+    checkins: []
+  });
+  const [showShiftModal, setShowShiftModal] = useState(false);
+  const [showVacationModal, setShowVacationModal] = useState(false);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [lastCheckIn, setLastCheckIn] = useState(null);
+  const [checkInTimer, setCheckInTimer] = useState(null);
+  const [missedCheckIns, setMissedCheckIns] = useState(0);
+  
+  // Schichtverwaltung Form Data
+  const [shiftFormData, setShiftFormData] = useState({
+    team_name: '',
+    district: '',
+    shift_start: '',
+    shift_end: '',
+    members: []
+  });
+  const [vacationFormData, setVacationFormData] = useState({
+    user_id: '',
+    start_date: '',
+    end_date: '',
+    reason: '',
+    status: 'pending'
+  });
   
   useEffect(() => {
     if (selectedChannel && selectedChannel !== 'private') {
@@ -1289,7 +1327,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         rank: profileData.rank,
         department: profileData.department,
         status: userStatus,
-        photo: profileData.photo // Include photo in updates!
+        photo: profileData.photo, // Include photo in updates!
+        // Neue Profil-Einstellungen hinzufügen
+        notification_sound: profileData.notification_sound,
+        vibration_pattern: profileData.vibration_pattern,
+        battery_saver_mode: profileData.battery_saver_mode,
+        check_in_interval: profileData.check_in_interval,
+        assigned_district: profileData.assigned_district,
+        patrol_team: profileData.patrol_team
       };
       
       // Wenn Admin einen anderen Benutzer bearbeitet
@@ -1309,7 +1354,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           service_number: response.data.service_number || '',
           rank: response.data.rank || '',
           department: response.data.department || '',
-          photo: response.data.photo || ''
+          photo: response.data.photo || '',
+          // Neue Profil-Einstellungen aktualisieren
+          notification_sound: response.data.notification_sound || 'default',
+          vibration_pattern: response.data.vibration_pattern || 'standard',
+          battery_saver_mode: response.data.battery_saver_mode || false,
+          check_in_interval: response.data.check_in_interval || 30,
+          assigned_district: response.data.assigned_district || '',
+          patrol_team: response.data.patrol_team || ''
         });
         Alert.alert('✅ Erfolg', 'Profil wurde erfolgreich aktualisiert!');
       }
@@ -1477,15 +1529,15 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('🗑️ Lösche Person:', personId, personName);
       await axios.delete(`${API_URL}/api/persons/${personId}`, config);
       
-      // Web-kompatible Erfolgsmeldung
-      window.alert(`✅ Erfolg\n\n${personName} wurde erfolgreich archiviert!`);
+      // Mobile-kompatible Erfolgsmeldung
+      Alert.alert('✅ Erfolg', `${personName} wurde erfolgreich archiviert!`);
       await loadPersons();
       await loadPersonStats();
       
     } catch (error) {
       console.error('❌ Person delete error:', error);
-      // Web-kompatible Fehlermeldung
-      window.alert(`❌ Fehler\n\nPerson konnte nicht archiviert werden.\nFehler: ${error.message}`);
+      // Mobile-kompatible Fehlermeldung
+      Alert.alert('❌ Fehler', `Person konnte nicht archiviert werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1559,14 +1611,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('🗑️ Lösche Vorfall:', incidentId, incidentTitle);
       await axios.delete(`${API_URL}/api/incidents/${incidentId}`, config);
       
-      // Web-kompatible Erfolgsmeldung
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
+      Alert.alert('✅ Erfolg', `Vorfall "${incidentTitle}" wurde erfolgreich gelöscht!`);
       await loadAllIncidents();
       await loadData(); // Home-Statistiken aktualisieren
       
     } catch (error) {
       console.error('❌ Incident delete error:', error);
-      window.alert(`❌ Fehler\n\nVorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
+      Alert.alert('❌ Fehler', `Vorfall konnte nicht gelöscht werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1579,13 +1630,13 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       console.log('✅ Schließe Vorfall ab:', incidentId, incidentTitle);
       await axios.put(`${API_URL}/api/incidents/${incidentId}/complete`, {}, config);
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
+      Alert.alert('✅ Erfolg', `Vorfall "${incidentTitle}" wurde abgeschlossen und archiviert!`);
       await loadAllIncidents();
       await loadData();
       
     } catch (error) {
       console.error('❌ Incident complete error:', error);
-      window.alert(`❌ Fehler\n\nVorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
+      Alert.alert('❌ Fehler', `Vorfall konnte nicht abgeschlossen werden.\nFehler: ${error.message}`);
     }
   };
 
@@ -1606,7 +1657,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       await axios.put(`${API_URL}/api/incidents/${incidentId}`, updateData, config);
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
       
       // Reload data to reflect changes
       await loadAllIncidents();
@@ -1635,7 +1686,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1662,7 +1713,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'open': 'OFFEN'
       }[newStatus] || newStatus.toUpperCase();
       
-      window.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload incidents
       await loadAllIncidents();
@@ -1691,7 +1742,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1904,7 +1955,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         secondary_color: ''
       });
       
-      window.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
+      Alert.alert('✅ Erfolg\n\nApp-Einstellungen wurden erfolgreich gespeichert!');
       setShowAdminSettingsModal(false);
       
     } catch (error) {
@@ -1915,7 +1966,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       } else if (error.response?.data?.detail) {
         errorMsg = error.response.data.detail;
       }
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -1972,7 +2023,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log('📊 Sending update data:', updateData);
       
-      await axios.put(`${BACKEND_BASE_URL}/api/reports/${reportId}`, updateData, config);
+      await axios.put(`${API_URL}/api/reports/${reportId}`, updateData, config);
       
       const statusText = {
         'in_progress': 'IN BEARBEITUNG',
@@ -2056,7 +2107,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       setShowPersonDetailModal(false);
       
       // Show success message
-      window.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
+      Alert.alert(`✅ Erfolg\n\nPerson "${personName}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload persons data
       await loadPersons();
@@ -2077,7 +2128,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMsg = error.response.data.message;
       }
       
-      window.alert(`❌ Fehler\n\n${errorMsg}`);
+      Alert.alert(`❌ Fehler\n\n${errorMsg}`);
     }
   };
 
@@ -2102,17 +2153,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const submitIncident = async () => {
     // Validation
     if (!incidentFormData.title.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Vorfall-Titel ein.');
       return;
     }
     
     if (!incidentFormData.description.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie eine Beschreibung ein.');
       return;
     }
     
     if (!incidentFormData.location.trim()) {
-      window.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
+      Alert.alert('❌ Fehler\n\nBitte geben Sie einen Standort ein.');
       return;
     }
 
@@ -2141,7 +2192,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       console.log('✅ Incident submitted successfully:', response.data);
       
-      window.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
+      Alert.alert(`✅ Vorfall gemeldet!\n\n"${incidentFormData.title}" wurde erfolgreich gemeldet.`);
       
       // Reset form
       setIncidentFormData({
@@ -2173,7 +2224,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         errorMessage = JSON.stringify(error);
       }
       
-      window.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
+      Alert.alert(`❌ Fehler beim Melden\n\nVorfall konnte nicht gemeldet werden.\nFehler: ${errorMessage}`);
     } finally {
       setSubmittingIncident(false);
     }
@@ -2206,7 +2257,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      window.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
+      Alert.alert(`✅ Nachricht gesendet\n\nNachricht an ${selectedRecipient.username} erfolgreich gesendet!`);
       setPrivateMessage('');
       setShowPrivateMessageModal(false);
       
@@ -2215,7 +2266,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
     } catch (error) {
       console.error('❌ Private message error:', error);
-      window.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
+      Alert.alert(`❌ Fehler\n\nNachricht konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2509,14 +2560,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         'private_message'
       );
 
-      window.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
+      Alert.alert(`✅ Antwort gesendet\n\nAntwort erfolgreich gesendet!`);
       setChatReply('');
       setShowChatModal(false);
       await loadRecentMessages(); // Reload messages
       
     } catch (error) {
       console.error('❌ Chat reply error:', error);
-      window.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
+      Alert.alert(`❌ Fehler\n\nAntwort konnte nicht gesendet werden.`);
     } finally {
       setSendingPrivateMessage(false);
     }
@@ -2822,7 +2873,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
     } catch (error) {
       console.error('❌ Error sending message:', error);
-      window.alert(`❌ Nachricht konnte nicht gesendet werden`);
+      Alert.alert(`❌ Nachricht konnte nicht gesendet werden`);
     }
   };
 
@@ -4454,6 +4505,59 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     profileSaveButtonText: {
       color: '#FFFFFF',
       fontSize: 14,
+      fontWeight: '600',
+    },
+    // Neue Styles für Profil-Einstellungen
+    pickerContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    pickerOption: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      flex: 1,
+      minWidth: '45%',
+    },
+    pickerOptionActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    pickerOptionText: {
+      textAlign: 'center',
+      fontSize: 14,
+      color: colors.text,
+    },
+    pickerOptionTextActive: {
+      color: '#FFFFFF',
+      fontWeight: '600',
+    },
+    toggleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 12,
+    },
+    toggleButtonActive: {
+      backgroundColor: colors.warning + '20',
+      borderColor: colors.warning,
+    },
+    toggleButtonText: {
+      fontSize: 16,
+      color: colors.text,
+      flex: 1,
+    },
+    toggleButtonTextActive: {
+      color: colors.warning,
       fontWeight: '600',
     },
     // Quick Navigation Links Styles
@@ -7067,6 +7171,15 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     </View>
   );
 
+  // Schichtverwaltung Screen
+  const renderShiftManagementScreen = () => (
+    <ShiftManagementComponent 
+      user={user}
+      token={token}
+      API_URL={API_URL}
+    />
+  );
+
   const renderDatabaseScreen = () => (
     <View style={dynamicStyles.content}>
       <View style={dynamicStyles.header}>
@@ -7077,7 +7190,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           <View style={dynamicStyles.headerTextContainer}>
             <Text style={dynamicStyles.modernTitle}>Personendatenbank</Text>
             <Text style={dynamicStyles.modernSubtitle}>
-              🔍 Gesuchte • ⚠️ Vermisste Personen
+              🔍 Gesuchte • ⚠️ Vermisste • ✅ Erledigt
             </Text>
           </View>
         </View>
@@ -7092,10 +7205,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         <View style={[dynamicStyles.dbStatCard, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
           <Text style={[dynamicStyles.dbStatNumber, { color: colors.error }]}>{personStats.wanted_persons}</Text>
           <Text style={dynamicStyles.dbStatLabel}>Gesucht</Text>
-        </View>
-        <View style={[dynamicStyles.dbStatCard, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
-          <Text style={[dynamicStyles.dbStatNumber, { color: colors.success }]}>{personStats.found_persons}</Text>
-          <Text style={dynamicStyles.dbStatLabel}>Gefunden</Text>
         </View>
         <View style={[dynamicStyles.dbStatCard, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
           <Text style={[dynamicStyles.dbStatNumber, { color: colors.primary }]}>{personStats.total_persons}</Text>
@@ -7150,7 +7259,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </Text>
         </TouchableOpacity>
         
-
+        
         <TouchableOpacity 
           style={[
             dynamicStyles.categoryTab,
@@ -7270,7 +7379,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                     {
                       borderLeftColor: person.status === 'vermisst' ? colors.warning :
                                      person.status === 'gesucht' ? colors.error :
-                                     colors.primary
+                                    colors.primary
                     }
                   ]}
                   onPress={() => {
@@ -7291,11 +7400,12 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       {
                         color: person.status === 'vermisst' ? colors.warning :
                                person.status === 'gesucht' ? colors.error :
-                               colors.primary
+                               person.status === 'gefunden' ? colors.success : colors.primary
                       }
                     ]}>
                       📊 Status: {person.status === 'vermisst' ? '⚠️ Vermisst' :
                                   person.status === 'gesucht' ? '🚨 Gesucht' :
+                               
                                   '📋 ' + (person.status || 'Unbekannt')}
                     </Text>
                     {person.case_number && (
@@ -7319,10 +7429,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={dynamicStyles.deletePersonButton}
                         onPress={(e) => {
                           e.stopPropagation();
-                          // Web-kompatible Bestätigung
-                          if (window.confirm(`🗑️ Person archivieren\n\n${person.first_name} ${person.last_name} wirklich archivieren?`)) {
-                            deletePerson(person.id, `${person.first_name} ${person.last_name}`);
-                          }
+                          Alert.alert(
+                            '🗑️ Person archivieren',
+                            `${person.first_name} ${person.last_name} wirklich archivieren?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              { 
+                                text: 'Ja, ARCHIVIEREN', 
+                                style: 'destructive',
+                                onPress: () => deletePerson(person.id, `${person.first_name} ${person.last_name}`)
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="archive" size={16} color="#FFFFFF" />
@@ -7459,9 +7577,17 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                       style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.success }]}
                       onPress={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`✅ Vorfall abschließen\n\n"${incident.title}" abschließen?`)) {
-                          completeIncident(incident.id, incident.title);
-                        }
+                        Alert.alert(
+                          '✅ Vorfall abschließen',
+                          `"${incident.title}" abschließen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            { 
+                              text: 'Ja, ABSCHLIESSEN', 
+                              onPress: () => completeIncident(incident.id, incident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="checkmark" size={16} color="#FFFFFF" />
@@ -7471,9 +7597,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                         style={[dynamicStyles.incidentActionBtn, { backgroundColor: colors.error }]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`🗑️ Vorfall löschen\n\n"${incident.title}" wirklich löschen?`)) {
-                            deleteIncident(incident.id, incident.title);
-                          }
+                          Alert.alert(
+                            '🗑️ Vorfall löschen',
+                            `"${incident.title}" wirklich löschen?`,
+                            [
+                              { text: 'Abbrechen', style: 'cancel' },
+                              { 
+                                text: 'Ja, LÖSCHEN', 
+                                style: 'destructive',
+                                onPress: () => deleteIncident(incident.id, incident.title)
+                              }
+                            ]
+                          );
                         }}
                       >
                         <Ionicons name="trash" size={16} color="#FFFFFF" />
@@ -7677,6 +7812,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       case 'team': return renderTeamScreen();
       case 'myteam': return renderMyTeamScreen();
       case 'database': return renderDatabaseScreen();
+      case 'schichten': return renderShiftManagementScreen();
       case 'admin': return renderAdminScreen();
       default: return renderHomeScreen();
     }
@@ -7734,6 +7870,21 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           />
           <Text style={[dynamicStyles.tabLabel, activeTab === 'berichte' && dynamicStyles.tabLabelActive]}>
             Berichte
+          </Text>
+        </TouchableOpacity>
+        
+        {/* Neue Schichtverwaltung Tab */}
+        <TouchableOpacity 
+          style={[dynamicStyles.tabItem, activeTab === 'schichten' && dynamicStyles.tabItemActive]}
+          onPress={() => setActiveTab('schichten')}
+        >
+          <Ionicons 
+            name={activeTab === 'schichten' ? 'time' : 'time-outline'} 
+            size={24} 
+            color={activeTab === 'schichten' ? '#FFFFFF' : colors.textMuted} 
+          />
+          <Text style={[dynamicStyles.tabLabel, activeTab === 'schichten' && dynamicStyles.tabLabelActive]}>
+            Schichten
           </Text>
         </TouchableOpacity>
         
@@ -7959,6 +8110,127 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                 )}
               </TouchableOpacity>
             ))}
+
+            {/* Neue Profil-Einstellungen */}
+            <Text style={dynamicStyles.sectionTitle}>🔔 Benachrichtigungen & Einstellungen</Text>
+            
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🔊 Benachrichtigungston</Text>
+              <View style={dynamicStyles.pickerContainer}>
+                {['default', 'siren', 'beep', 'chime'].map(sound => (
+                  <TouchableOpacity
+                    key={sound}
+                    style={[
+                      dynamicStyles.pickerOption,
+                      profileData.notification_sound === sound && dynamicStyles.pickerOptionActive
+                    ]}
+                    onPress={() => setProfileData({...profileData, notification_sound: sound})}
+                  >
+                    <Text style={[
+                      dynamicStyles.pickerOptionText,
+                      profileData.notification_sound === sound && dynamicStyles.pickerOptionTextActive
+                    ]}>
+                      {sound === 'default' ? '🔔 Standard' : 
+                       sound === 'siren' ? '🚨 Sirene' :
+                       sound === 'beep' ? '📱 Piep' : '🎵 Glocke'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>📳 Vibrationsmuster</Text>
+              <View style={dynamicStyles.pickerContainer}>
+                {['standard', 'intense', 'pulse', 'custom'].map(pattern => (
+                  <TouchableOpacity
+                    key={pattern}
+                    style={[
+                      dynamicStyles.pickerOption,
+                      profileData.vibration_pattern === pattern && dynamicStyles.pickerOptionActive
+                    ]}
+                    onPress={() => setProfileData({...profileData, vibration_pattern: pattern})}
+                  >
+                    <Text style={[
+                      dynamicStyles.pickerOptionText,
+                      profileData.vibration_pattern === pattern && dynamicStyles.pickerOptionTextActive
+                    ]}>
+                      {pattern === 'standard' ? '📳 Standard' : 
+                       pattern === 'intense' ? '💥 Intensiv' :
+                       pattern === 'pulse' ? '🌊 Puls' : '⚙️ Benutzerdefiniert'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🔋 Akku-schonender Modus</Text>
+              <TouchableOpacity
+                style={[
+                  dynamicStyles.toggleButton,
+                  profileData.battery_saver_mode && dynamicStyles.toggleButtonActive
+                ]}
+                onPress={() => setProfileData({...profileData, battery_saver_mode: !profileData.battery_saver_mode})}
+              >
+                <Ionicons 
+                  name={profileData.battery_saver_mode ? "battery-half" : "battery-full"} 
+                  size={20} 
+                  color={profileData.battery_saver_mode ? colors.warning : colors.success} 
+                />
+                <Text style={[
+                  dynamicStyles.toggleButtonText,
+                  profileData.battery_saver_mode && dynamicStyles.toggleButtonTextActive
+                ]}>
+                  {profileData.battery_saver_mode ? '🔋 Aktiviert' : '⚡ Deaktiviert'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>⏱️ Check-In Intervall (Minuten)</Text>
+              <View style={dynamicStyles.pickerContainer}>
+                {[15, 30, 60, 120].map(interval => (
+                  <TouchableOpacity
+                    key={interval}
+                    style={[
+                      dynamicStyles.pickerOption,
+                      profileData.check_in_interval === interval && dynamicStyles.pickerOptionActive
+                    ]}
+                    onPress={() => setProfileData({...profileData, check_in_interval: interval})}
+                  >
+                    <Text style={[
+                      dynamicStyles.pickerOptionText,
+                      profileData.check_in_interval === interval && dynamicStyles.pickerOptionTextActive
+                    ]}>
+                      {interval} Min
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>🗺️ Zugewiesener Bezirk</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={profileData.assigned_district}
+                onChangeText={(text) => setProfileData({...profileData, assigned_district: text})}
+                placeholder="z.B. Zentrum, Nord, Süd"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={dynamicStyles.formGroup}>
+              <Text style={dynamicStyles.formLabel}>👥 Patrouille/Team</Text>
+              <TextInput
+                style={dynamicStyles.formInput}
+                value={profileData.patrol_team}
+                onChangeText={(text) => setProfileData({...profileData, patrol_team: text})}
+                placeholder="z.B. Team Alpha, Streife 1"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
 
             {/* Quick Navigation Links */}
             <View style={dynamicStyles.formGroup}>
@@ -8582,6 +8854,7 @@ Beispielinhalt:
                       personFormData.status === 'gesucht' && dynamicStyles.pickerButtonTextActive
                     ]}>🚨 Gesucht</Text>
                   </TouchableOpacity>
+                
                 </View>
               </View>
 
@@ -8791,7 +9064,7 @@ Beispielinhalt:
                                        colors.primary + '20',
                         borderColor: selectedPerson.status === 'vermisst' ? colors.warning :
                                    selectedPerson.status === 'gesucht' ? colors.error :
-                                   colors.primary
+                                    colors.primary
                       }
                     ]}>
                       <Text style={[
@@ -8799,12 +9072,12 @@ Beispielinhalt:
                         {
                           color: selectedPerson.status === 'vermisst' ? colors.warning :
                                  selectedPerson.status === 'gesucht' ? colors.error :
-                                 selectedPerson.status === 'gefunden' ? colors.success : colors.primary
+                                  colors.primary
                         }
                       ]}>
                         {selectedPerson.status === 'vermisst' ? '⚠️ Vermisst' :
                          selectedPerson.status === 'gesucht' ? '🚨 Gesucht' :
-                         selectedPerson.status === 'gefunden' ? '✅ Gefunden' :
+                         
                          '📋 ' + (selectedPerson.status || 'Unbekannt')}
                       </Text>
                     </View>
@@ -8905,9 +9178,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`✅ Person erledigt\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`)) {
-                          updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
-                        }
+                        Alert.alert(
+                          '✅ Person erledigt',
+                          `"${selectedPerson.first_name} ${selectedPerson.last_name}" als erledigt markieren?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            { 
+                              text: 'Ja, ERLEDIGT', 
+                              onPress: () => updatePersonStatus(selectedPerson.id, 'erledigt', `${selectedPerson.first_name} ${selectedPerson.last_name}`)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
@@ -8916,23 +9197,7 @@ Beispielinhalt:
                       </Text>
                     </TouchableOpacity>
                   )}
-                  
-                  {/* Status Ändern Buttons */}
-                  {selectedPerson.status !== 'gefunden' && (
-                    <TouchableOpacity
-                      style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
-                      onPress={() => {
-                        if (window.confirm(`✅ Person gefunden\n\n"${selectedPerson.first_name} ${selectedPerson.last_name}" als gefunden markieren?`)) {
-                          updatePersonStatus(selectedPerson.id, 'gefunden', `${selectedPerson.first_name} ${selectedPerson.last_name}`);
-                        }
-                      }}
-                    >
-                      <Ionicons name="location" size={20} color="#FFFFFF" />
-                      <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
-                        ✅ Als gefunden markieren
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -9100,9 +9365,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.primary, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`👤 Vorfall annehmen\n\n"${selectedIncident.title}" annehmen und selbst bearbeiten?`)) {
-                          assignIncidentToSelf(selectedIncident.id, selectedIncident.title);
-                        }
+                        Alert.alert(
+                          '👤 Vorfall annehmen',
+                          `"${selectedIncident.title}" annehmen und selbst bearbeiten?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            { 
+                              text: 'Ja, ANNEHMEN', 
+                              onPress: () => assignIncidentToSelf(selectedIncident.id, selectedIncident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="person-add" size={20} color="#FFFFFF" />
@@ -9117,9 +9390,17 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, marginBottom: 12 }]}
                       onPress={() => {
-                        if (window.confirm(`⚙️ Status ändern\n\n"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`)) {
-                          updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
-                        }
+                        Alert.alert(
+                          '⚙️ Status ändern',
+                          `"${selectedIncident.title}" auf "IN BEARBEITUNG" setzen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            { 
+                              text: 'Ja, IN BEARBEITUNG', 
+                              onPress: () => updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title)
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="cog" size={20} color="#FFFFFF" />
@@ -9133,10 +9414,20 @@ Beispielinhalt:
                   <TouchableOpacity
                     style={[dynamicStyles.actionButton, { backgroundColor: colors.success, marginBottom: 12 }]}
                     onPress={() => {
-                      if (window.confirm(`✅ Vorfall abschließen\n\n"${selectedIncident.title}" abschließen?`)) {
-                        completeIncident(selectedIncident.id, selectedIncident.title);
-                        setShowIncidentDetailModal(false);
-                      }
+                      Alert.alert(
+                        '✅ Vorfall abschließen',
+                        `"${selectedIncident.title}" abschließen?`,
+                        [
+                          { text: 'Abbrechen', style: 'cancel' },
+                          { 
+                            text: 'Ja, ABSCHLIESSEN', 
+                            onPress: () => {
+                              completeIncident(selectedIncident.id, selectedIncident.title);
+                              setShowIncidentDetailModal(false);
+                            }
+                          }
+                        ]
+                      );
                     }}
                   >
                     <Ionicons name="checkmark" size={20} color="#FFFFFF" />
@@ -9149,10 +9440,21 @@ Beispielinhalt:
                     <TouchableOpacity
                       style={[dynamicStyles.actionButton, { backgroundColor: colors.error }]}
                       onPress={() => {
-                        if (window.confirm(`🗑️ Vorfall löschen\n\n"${selectedIncident.title}" wirklich löschen?`)) {
-                          deleteIncident(selectedIncident.id, selectedIncident.title);
-                          setShowIncidentDetailModal(false);
-                        }
+                        Alert.alert(
+                          '🗑️ Vorfall löschen',
+                          `"${selectedIncident.title}" wirklich löschen?`,
+                          [
+                            { text: 'Abbrechen', style: 'cancel' },
+                            { 
+                              text: 'Ja, LÖSCHEN', 
+                              style: 'destructive',
+                              onPress: () => {
+                                deleteIncident(selectedIncident.id, selectedIncident.title);
+                                setShowIncidentDetailModal(false);
+                              }
+                            }
+                          ]
+                        );
                       }}
                     >
                       <Ionicons name="trash" size={20} color="#FFFFFF" />
@@ -9912,8 +10214,6 @@ const AppContent = () => {
     primary_color: '#1E40AF',
     secondary_color: '#3B82F6'
   });
-
-  const API_URL = "http://212.227.57.238:8001";
 
   // Load app configuration
   const loadAppConfig = async () => {
