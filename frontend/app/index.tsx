@@ -7845,15 +7845,15 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         {/* Team Tab - Only visible if user has a team */}
         {user?.team && (
           <TouchableOpacity 
-            style={[dynamicStyles.tabItem, activeTab === 'team' && dynamicStyles.tabItemActive]}
-            onPress={() => setActiveTab('team')}
+            style={[dynamicStyles.tabItem, activeTab === 'myteam' && dynamicStyles.tabItemActive]}
+            onPress={() => setActiveTab('myteam')}
           >
             <Ionicons 
-              name={activeTab === 'team' ? 'people' : 'people-outline'} 
+              name={activeTab === 'myteam' ? 'people' : 'people-outline'} 
               size={24} 
-              color={activeTab === 'team' ? '#FFFFFF' : colors.textMuted} 
+              color={activeTab === 'myteam' ? '#FFFFFF' : colors.textMuted} 
             />
-            <Text style={[dynamicStyles.tabLabel, activeTab === 'team' && dynamicStyles.tabLabelActive]}>
+            <Text style={[dynamicStyles.tabLabel, activeTab === 'myteam' && dynamicStyles.tabLabelActive]}>
               Team {user.team}
             </Text>
           </TouchableOpacity>
