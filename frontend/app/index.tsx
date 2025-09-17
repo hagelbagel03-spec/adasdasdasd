@@ -145,43 +145,12 @@ const AuthProvider = ({ children }) => {
   
 const BACKEND_BASE_URL = "http://212.227.57.238:8001";
 
-  // App-Konfiguration laden mit Fallback
-  const loadAppConfig = async () => {
-    try {
-      console.log('📱 Loading app config...');
-      const response = await axios.get(`${BACKEND_BASE_URL}/api/app/config`, { timeout: 5000 });
-      console.log('✅ App config loaded:', response.data);
-      return response.data;
-    } catch (error) {
-      console.log('⚠️ App config failed, using fallback:', error.message);
-      // Fallback-Konfiguration für robustes Verhalten
-      return {
-        app_name: "Stadtwache",
-        version: "1.0.0",
-        environment: "production",
-        features: {
-          gps_enabled: true,
-          emergency_alerts: true,
-          reports: true
-        }
-      };
-    }
-  };
-
   useEffect(() => {
-    const initializeApp = async () => {
-      console.log('🚀 Initializing Stadtwache App...');
-      
-      // Auth-Status direkt prüfen (ohne Config-Abhängigkeit)
-      await checkAuthState();
-      
-      // Setup axios interceptors
-      setupAxiosInterceptors();
-      
-      console.log('✅ Stadtwache App initialized successfully');
-    };
-    
-    initializeApp();
+    // Sofortiges Laden ohne Blockierung
+    console.log('🚀 Stadtwache App starting...');
+    checkAuthState();
+    setupAxiosInterceptors();
+    console.log('✅ Stadtwache ready');
   }, []);
 
   const setupAxiosInterceptors = () => {
