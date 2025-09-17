@@ -853,7 +853,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ visible, onClose, onUserAdd
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </Modal>
+    </KeyboardAvoidingView>
+  </View>
+</Modal>
   );
 };
 
