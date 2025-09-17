@@ -8798,7 +8798,6 @@ Beispielinhalt:
                       ]}>
                         {selectedPerson.status === 'vermisst' ? '⚠️ Vermisst' :
                          selectedPerson.status === 'gesucht' ? '🚨 Gesucht' :
-                         selectedPerson.status === 'gefunden' ? '✅ Gefunden' :
                          '📋 ' + (selectedPerson.status || 'Unbekannt')}
                       </Text>
                     </View>
