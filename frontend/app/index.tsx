@@ -193,37 +193,31 @@ const BACKEND_BASE_URL = "http://212.227.57.238:8001";
   };
 
   const checkAuthState = async () => {
+    console.log('🔍 Starte Auth-Check...');
+    
+    // VEREINFACHT: Setze loading direkt auf false nach kurzem Timeout
+    setTimeout(() => {
+      console.log('✅ FORCE: Loading auf false gesetzt');
+      setLoading(false);
+    }, 3000); // Nach 3 Sekunden loading = false
+    
     try {
       // Versuche gespeicherten Token zu laden
       const savedToken = await AsyncStorage.getItem('stadtwache_token');
       const savedUser = await AsyncStorage.getItem('stadtwache_user');
       
+      console.log('🔍 Gespeicherte Daten:', { hasToken: !!savedToken, hasUser: !!savedUser });
+      
       if (savedToken && savedUser) {
-        console.log('🔐 Gespeicherte Login-Daten gefunden');
-        
-        // Validiere Token mit Backend
-        try {
-          const response = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${savedToken}` }
-          });
-          
-          console.log('✅ Token noch gültig, Auto-Login...');
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
-          axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-          
-        } catch (error) {
-          console.log('❌ Token abgelaufen, lösche gespeicherte Daten');
-          await AsyncStorage.removeItem('stadtwache_token');
-          await AsyncStorage.removeItem('stadtwache_user');
-        }
+        console.log('🔐 Gespeicherte Login-Daten gefunden, setze User...');
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+      } else {
+        console.log('ℹ️ Keine gespeicherten Login-Daten gefunden');
       }
     } catch (error) {
       console.error('❌ Auto-Login Fehler:', error);
-    } finally {
-      // Kurze Verzögerung für bessere UX
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setLoading(false);
     }
   };
 
