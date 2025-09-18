@@ -212,6 +212,7 @@ const AuthProvider = ({ children }) => {
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
           axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+          console.log('🔑 Default Authorization header gesetzt:', axios.defaults.headers.common['Authorization']);
           
         } catch (error) {
           console.log('❌ Token abgelaufen, lösche gespeicherte Daten');
@@ -509,7 +510,7 @@ const LoginScreen = ({ appConfig }) => {
         <View style={dynamicStyles.footer}>
           <Text style={dynamicStyles.footerText}>Stadtwache Schwelm</Text>
           <Text style={dynamicStyles.footerSubtext}>
-            Sichere Verbindung • Server: 212.227.57.238:8001
+            Sichere Verbindung • Server: ladrunter.preview.emergentagent.com
           </Text>
         </View>
 
@@ -674,6 +675,18 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('home');
   const [stats, setStats] = useState({ incidents: 0, officers: 0, messages: 0 });
+  
+  // Team Chat State
+  const [userTeam, setUserTeam] = useState(null);
+  const [showTeamChatModal, setShowTeamChatModal] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+
+  // District Assignment Modal
+  const [showDistrictAssignmentModal, setShowDistrictAssignmentModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
   const [recentIncidents, setRecentIncidents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -683,6 +696,47 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showAdminSettingsModal, setShowAdminSettingsModal] = useState(false);
+  
+  // Neue Admin Modals
+  const [showVacationManagementModal, setShowVacationManagementModal] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showTeamStatusModal, setShowTeamStatusModal] = useState(false);
+  
+  // Modal Transition Lock to prevent multiple modals
+  const [modalTransitionLock, setModalTransitionLock] = useState(false);
+  const [pendingTimeouts, setPendingTimeouts] = useState([]);
+  
+  // Neue Admin Daten
+  const [pendingVacations, setPendingVacations] = useState([]);
+  const [attendanceList, setAttendanceList] = useState([]);
+  const [teamStatusList, setTeamStatusList] = useState([]);
+  
+  // Benutzerübersicht
+  const [showUserOverviewModal, setShowUserOverviewModal] = useState(false);
+  const [userOverviewList, setUserOverviewList] = useState([]);
+  
+  // Rejection Modal für Urlaubsanträge
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionVacationId, setRejectionVacationId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  
+  // Admin Dashboard Modal
+  const [showAdminDashboardModal, setShowAdminDashboardModal] = useState(false);
+  
+  // Team Creation (aus Admin-Dashboard)
+  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
+  const [newTeamData, setNewTeamData] = useState({
+    name: '',
+    description: '',
+    district: '',
+    max_members: 6,
+    selectedMembers: []
+  });
+  const [availableUsers, setAvailableUsers] = useState([]);
+  
+  // Benutzer-Auswahl für Team
+  const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [showSOSModal, setShowSOSModal] = useState(false);
 
   // SOS Alarm Function - Send real notification with GPS to all team members
@@ -904,8 +958,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   const [newChatName, setNewChatName] = useState('');
   const [chatList, setChatList] = useState([]);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   
   // Channel States
@@ -1124,8 +1176,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         images: []
       });
       
-      // Reload reports
-      await loadReports();
+      // Reload reports - verbesserte Fehlerbehandlung
+      try {
+        if (typeof loadReports === 'function') {
+          await loadReports();
+        }
+      } catch (e) {
+        console.log('loadReports Fehler:', e);
+      }
 
     } catch (error) {
       console.error('❌ Error saving report:', error);
@@ -1168,6 +1226,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   useEffect(() => {
     if (activeTab === 'team') {
       loadUsersByStatus();
+      
+      // Auto-refresh Team-Daten alle 30 Sekunden
+      const teamRefreshInterval = setInterval(() => {
+        console.log('🔄 Auto-refreshing team data...');
+        loadUsersByStatus();
+      }, 30000);
+      
+      return () => clearInterval(teamRefreshInterval);
     }
     if (activeTab === 'berichte') {
       loadReports();
@@ -1312,6 +1378,38 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       await loadUsersByStatus();
     }
     setRefreshing(false);
+  };
+
+  // Load available users for team assignment
+  const loadAvailableUsers = async () => {
+    try {
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const response = await axios.get(`${API_URL}/api/users/by-status`, config);
+      const allUsersData = Object.values(response.data).flat();
+      setAvailableUsers(allUsersData || []);
+    } catch (error) {
+      console.error('❌ Error loading all users:', error);
+      setAvailableUsers([]);
+    }
+  };
+
+  // Load available districts for district assignment
+  const loadAvailableDistricts = async () => {
+    try {
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const response = await axios.get(`${API_URL}/api/admin/districts`, config);
+      setAvailableDistricts(response.data || []);
+    } catch (error) {
+      console.error('❌ Error loading districts:', error);
+      // Fallback to default districts if API fails
+      setAvailableDistricts([
+        { id: '1', name: 'Zentrum', area: 'Innenstadt' },
+        { id: '2', name: 'Nord', area: 'Nördlicher Bereich' },
+        { id: '3', name: 'Süd', area: 'Südlicher Bereich' },
+        { id: '4', name: 'Ost', area: 'Östlicher Bereich' },
+        { id: '5', name: 'West', area: 'Westlicher Bereich' }
+      ]);
+    }
   };
 
   const saveProfile = async () => {
@@ -1659,9 +1757,22 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde Ihnen zugewiesen und ist nun in Bearbeitung!`);
       
-      // Reload data to reflect changes
-      await loadAllIncidents();
-      await loadData();
+      // Reload data to reflect changes - verbesserte Fehlerbehandlung
+      try {
+        if (typeof loadAllIncidents === 'function') {
+          await loadAllIncidents();
+        }
+      } catch (e) {
+        console.log('loadAllIncidents Fehler:', e);
+      }
+      
+      try {
+        if (typeof loadData === 'function') {
+          await loadData();
+        }
+      } catch (e) {
+        console.log('loadData Fehler:', e);
+      }
       
       // Update the selected incident in the modal
       if (selectedIncident && selectedIncident.id === incidentId) {
@@ -1716,8 +1827,12 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       Alert.alert(`✅ Erfolg\n\nVorfall "${incidentTitle}" wurde auf "${statusText}" gesetzt!`);
       
       // Reload incidents
-      await loadAllIncidents();
-      await loadData();
+      if (typeof loadAllIncidents === 'function') {
+        await loadAllIncidents();
+      }
+      if (typeof loadData === 'function') {
+        await loadData();
+      }
       
       // Update selected incident if it's currently shown
       if (selectedIncident && selectedIncident.id === incidentId) {
@@ -1927,6 +2042,221 @@ const MainApp = ({ appConfig, setAppConfig }) => {
   };
 
   // Admin Settings Functions
+  // Neue Admin-Funktionen
+  const loadPendingVacations = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/vacations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📅 Loaded vacations:', data);
+        setPendingVacations(data || []);
+      } else {
+        console.error('❌ Fehler beim Laden der Urlaubsanträge');
+        setPendingVacations([]);
+      }
+    } catch (error) {
+      console.error('❌ Network error loading vacations:', error);
+      setPendingVacations([]);
+    }
+  };
+
+  const loadAttendanceList = async () => {
+    try {
+      const response = await fetch(`${API_URL}/admin/attendance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceList(data);
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Anwesenheitsliste:', error);
+    }
+  };
+
+  const loadTeamStatus = async () => {
+    try {
+      const response = await fetch(`${API_URL}/admin/team-status`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTeamStatusList(data);
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden des Team-Status:', error);
+    }
+  };
+
+  const handleVacationApproval = async (vacationId, action, reason) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/vacations/${vacationId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action, reason })
+      });
+      
+      if (response.ok) {
+        Alert.alert('✅ Erfolg', `Urlaubsantrag wurde ${action === 'approve' ? 'genehmigt' : 'abgelehnt'}`);
+        
+        // WICHTIG: Liste sofort neu laden
+        await loadPendingVacations();
+        
+        // WICHTIG: Entferne den bearbeiteten Antrag aus der UI-Liste
+        setPendingVacations(prev => prev.filter(vacation => vacation.id !== vacationId));
+        
+      } else {
+        const error = await response.json();
+        Alert.alert('❌ Fehler', error.detail || 'Fehler beim Bearbeiten des Antrags');
+      }
+    } catch (error) {
+      console.error('Fehler bei Urlaubsgenehmigung:', error);
+      Alert.alert('❌ Fehler', 'Netzwerkfehler beim Bearbeiten des Antrags');
+    }
+  };
+
+  const handleVacationRejection = async () => {
+    if (!rejectionReason.trim()) {
+      Alert.alert('❌ Fehler', 'Bitte geben Sie einen Grund für die Ablehnung an.');
+      return;
+    }
+    
+    await handleVacationApproval(rejectionVacationId, 'reject', rejectionReason);
+    
+    // Reset modal state
+    setShowRejectionModal(false);
+    setRejectionVacationId(null);
+    setRejectionReason('');
+  };
+
+  const updateTeamStatus = async (teamId, newStatus) => {
+    try {
+      const response = await fetch(`${API_URL}/admin/teams/${teamId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (response.ok) {
+        Alert.alert('✅ Erfolg', `Team-Status auf "${newStatus}" geändert`);
+        loadTeamStatus();
+      } else {
+        Alert.alert('❌ Fehler', 'Fehler beim Ändern des Team-Status');
+      }
+    } catch (error) {
+      console.error('Fehler bei Team-Status-Update:', error);
+      Alert.alert('❌ Fehler', 'Netzwerkfehler');
+    }
+  };
+
+  const getTeamStatusColor = (status) => {
+    switch (status) {
+      case 'Einsatzbereit': return colors.success;
+      case 'Im Einsatz': return colors.warning;
+      case 'Pause': return colors.info;
+      case 'Nicht verfügbar': return colors.error;
+      default: return colors.textMuted;
+    }
+  };
+
+  const getTeamStatusIcon = (status) => {
+    switch (status) {
+      case 'Einsatzbereit': return '✅';
+      case 'Im Einsatz': return '🚨';
+      case 'Pause': return '⏸️';
+      case 'Nicht verfügbar': return '❌';
+      default: return '❓';
+    }
+  };
+
+  const createNewTeam = async () => {
+    if (!newTeamData.name.trim()) {
+      Alert.alert('❌ Fehler', 'Team-Name ist erforderlich');
+      return;
+    }
+
+    try {
+      const teamData = {
+        name: newTeamData.name.trim(),
+        description: newTeamData.description.trim(),
+        district: newTeamData.district.trim(),
+        max_members: newTeamData.max_members,
+        status: 'Einsatzbereit',
+        members: newTeamData.selectedMembers.map(member => ({
+          id: member.id,
+          username: member.username,
+          role: member.role,
+          department: member.department
+        }))
+      };
+
+      const response = await fetch(`${API_URL}/api/admin/teams`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(teamData)
+      });
+      
+      if (response.ok) {
+        Alert.alert('✅ Erfolg', `Team "${newTeamData.name}" wurde erfolgreich erstellt mit ${newTeamData.selectedMembers.length} Mitgliedern!`);
+        
+        // Reset form and close modal
+        setNewTeamData({ name: '', description: '', district: '', max_members: 6, selectedMembers: [] });
+        setShowAddTeamModal(false);
+        setAvailableUsers([]);
+        
+        // Reload team data
+        await loadTeamStatus();
+      } else {
+        const errorData = await response.json();
+        Alert.alert('❌ Fehler', errorData.detail || 'Team konnte nicht erstellt werden');
+      }
+      
+    } catch (error) {
+      console.error('Error creating team:', error);
+      Alert.alert('❌ Fehler', 'Netzwerkfehler beim Erstellen des Teams');
+    }
+  };
+
+  const loadUserOverview = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const users = await response.json();
+        console.log('🔍 Raw users data:', users);
+        
+        // Zeige Benutzerdaten direkt an - ohne zusätzliche API-Calls
+        const enhancedUsers = users.map((user) => {
+          return {
+            ...user,
+            teamName: user.patrol_team || 'Nicht zugewiesen',
+            districtName: user.assigned_district || 'Nicht zugewiesen',
+            phone: user.phone || 'Nicht angegeben',
+            service_number: user.service_number || 'Nicht angegeben'
+          };
+        });
+        
+        console.log('✅ Enhanced users:', enhancedUsers);
+        setUserOverviewList(enhancedUsers);
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Benutzerübersicht:', error);
+      setUserOverviewList([]);
+    }
+  };
+
   const saveAdminSettings = async () => {
     try {
       const config = token ? {
@@ -2033,8 +2363,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       
       Alert.alert('✅ Erfolg', `Bericht "${reportTitle}" wurde auf "${statusText}" gesetzt!`);
       
-      // Reload reports
-      await loadReports();
+      // Reload reports - verbesserte Fehlerbehandlung
+      try {
+        if (typeof loadReports === 'function') {
+          await loadReports();
+        }
+      } catch (e) {
+        console.log('loadReports Fehler:', e);
+      }
       
       // Update selected report if it's currently shown
       if (selectedReport && selectedReport.id === reportId) {
@@ -2947,15 +3283,42 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     }
   };
 
+  // Helper function für Status-Farben
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Im Dienst': return '#10B981';
-      case 'Pause': return '#F59E0B';
-      case 'Einsatz': return '#EF4444';
-      case 'Streife': return '#8B5CF6';
-      case 'Nicht verfügbar': return '#6B7280';
-      default: return '#10B981';
+      case 'Im Dienst': return colors.success;
+      case 'approved': return colors.success;
+      case 'rejected': return colors.error;
+      case 'pending': return colors.warning;
+      case 'Pause': return colors.warning;
+      case 'Einsatz': return colors.error;
+      case 'Streife': return colors.primary;
+      case 'Nicht verfügbar': return colors.textMuted;
+      case 'ok': return colors.success;
+      case 'help_needed': return colors.warning;
+      case 'emergency': return colors.error;
+      default: return colors.textMuted;
     }
+  };
+
+  // Safe Modal Transition Helper - prevents multiple modals opening
+  const safeModalTransition = (closeCurrentModal, openNewModal, loadDataFn = null) => {
+    if (modalTransitionLock) return; // Prevent multiple rapid clicks
+    
+    // Clear any pending timeouts
+    pendingTimeouts.forEach(timeout => clearTimeout(timeout));
+    setPendingTimeouts([]);
+    
+    setModalTransitionLock(true);
+    closeCurrentModal();
+    
+    const timeout = setTimeout(() => {
+      if (loadDataFn) loadDataFn();
+      openNewModal();
+      setModalTransitionLock(false);
+    }, 150);
+    
+    setPendingTimeouts([timeout]);
   };
 
   // Get current location for incident reporting using Expo Location - FIXED
@@ -3151,6 +3514,85 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       fontSize: 12,
       color: colors.textMuted,
     },
+    userSelectionContainer: {
+      marginTop: 8,
+    },
+    userSelectionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    userSelectionItemSelected: {
+      backgroundColor: colors.primary + '20',
+      borderColor: colors.primary,
+      borderWidth: 1,
+    },
+    userSelectionAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    userSelectionAvatarImage: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+    },
+    userSelectionInfo: {
+      flex: 1,
+    },
+    userSelectionName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    userSelectionBadge: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    userSelectionCheckbox: {
+      marginLeft: 8,
+    },
+    selectedMembersContainer: {
+      marginTop: 16,
+      padding: 16,
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    selectedMembersTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    selectedMembersList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    selectedMemberChip: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    selectedMemberChipText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '500',
+    },
     statusHeaderText: {
       fontSize: 14,
       fontWeight: '700',
@@ -3196,6 +3638,476 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       fontSize: 11,
       fontWeight: 'bold',
     },
+
+    // SOS Modal Styles
+    sosAlarmCard: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 16,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: colors.border + '30',
+    },
+    sosAlarmIcon: {
+      marginRight: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sosAlarmContent: {
+      flex: 1,
+    },
+    sosAlarmTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    sosAlarmDescription: {
+      fontSize: 14,
+      color: colors.textMuted,
+      lineHeight: 20,
+    },
+
+    // Shift Management Component Modal Styles (exact copy)
+    shiftModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    shiftModalContainer: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      padding: 24,
+      width: '90%',
+      maxWidth: 400,
+    },
+    shiftModernModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingBottom: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border + '30',
+      marginBottom: 20,
+    },
+    shiftModernModalIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primary + '20',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    shiftModernModalTitleContainer: {
+      flex: 1,
+    },
+    shiftModernModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    shiftModernModalSubtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      fontWeight: '500',
+    },
+    shiftModernModalCloseButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.textMuted + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    shiftModernModalContent: {
+      flex: 1,
+      paddingBottom: 20,
+    },
+    shiftModernFormSection: {
+      marginBottom: 24,
+    },
+    shiftModernSectionLabel: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    shiftModernInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 12,
+      marginBottom: 16,
+    },
+    shiftModernInput: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.text,
+      padding: 0,
+    },
+    shiftModernInputLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    shiftInputHint: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 8,
+      fontStyle: 'italic',
+    },
+    shiftModernModalActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.border + '30',
+    },
+    shiftModernActionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      marginHorizontal: 6,
+    },
+    shiftModernActionButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+    },
+
+    // Statistics Grid
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    statCard: {
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+      flex: 1,
+      minWidth: 100,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statNumber: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.text,
+      marginTop: 8,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 4,
+      textAlign: 'center',
+    },
+
+    // User Cards
+    userCard: {
+      backgroundColor: colors.background,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    userCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    userAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary + '20',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    userInfo: {
+      flex: 1,
+    },
+    userName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    userEmail: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    statusBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+    },
+    statusBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    userCardDetails: {
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border + '30',
+    },
+    userDetailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    userDetailText: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginLeft: 8,
+    },
+    adminActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 12,
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      gap: 6,
+    },
+    actionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+
+    // Status Grid
+    statusGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statusCard: {
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+      flex: 1,
+      minWidth: 140,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statusIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    statusTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    statusCount: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+
+    // Attendance Cards
+    attendanceCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    attendanceInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    attendanceName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    attendanceDetails: {
+      gap: 4,
+    },
+    attendanceDetail: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+
+    // Vacation Request Cards
+    vacationRequestCard: {
+      backgroundColor: colors.background,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    requestHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    requestUserInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    requestUserName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    requestDate: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    requestDetails: {
+      marginBottom: 12,
+      gap: 8,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    detailText: {
+      fontSize: 14,
+      color: colors.text,
+      marginLeft: 8,
+      flex: 1,
+    },
+    requestActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+
+    // Empty State
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 32,
+    },
+    emptyStateText: {
+      fontSize: 16,
+      color: colors.textMuted,
+      marginTop: 16,
+      textAlign: 'center',
+    },
+
+    // Rejection Modal Styles
+    rejectionWarning: {
+      backgroundColor: colors.error + '10',
+      borderColor: colors.error + '30',
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: 20,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    rejectionWarningIcon: {
+      marginBottom: 12,
+    },
+    rejectionWarningTitle: {
+      fontSize: 18,
+      fontWeight: '700',  
+      color: colors.error,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    rejectionWarningText: {
+      fontSize: 14,
+      color: colors.text,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    rejectionHint: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 8,
+      fontStyle: 'italic',
+    },
+    rejectionButtonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    rejectionCancelButton: {
+      backgroundColor: colors.textMuted + '20',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      flex: 1,
+      marginRight: 8,
+      alignItems: 'center',
+    },
+    rejectionCancelButtonText: {
+      color: colors.textMuted,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    rejectionSubmitButton: {
+      backgroundColor: colors.error,
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      flex: 1,
+      marginLeft: 8,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    rejectionSubmitButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+      marginLeft: 8,
+    },
+    
+    // Legacy SOS Styles (kept for compatibility)
     sosIconContainer: {
       width: 80,
       height: 80,
@@ -4336,6 +5248,43 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       fontSize: 16,
       fontWeight: '600',
     },
+    // Modern Admin Button Styles
+    modernAdminButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      marginTop: 12,
+      shadowColor: 'rgba(0, 0, 0, 0.1)',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    modernButtonIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    modernButtonContent: {
+      flex: 1,
+    },
+    modernButtonTitle: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 2,
+    },
+    modernButtonSubtitle: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: 13,
+      fontWeight: '500',
+    },
     // Professional Report Card Styles
     professionalCard: {
       backgroundColor: colors.card,
@@ -4762,6 +5711,53 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginBottom: 16,
       marginTop: 24,
     },
+    profileSectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 16,
+      marginTop: 24,
+    },
+    
+    // Profile Action Cards (for Admin Dashboard)
+    profileActionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 12,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: colors.border + '30',
+    },
+    profileActionIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.success + '20',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    profileActionContent: {
+      flex: 1,
+    },
+    profileActionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    profileActionSubtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      lineHeight: 18,
+    },
     statusOption: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -4851,12 +5847,20 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
-      paddingVertical: 16,
+      paddingVertical: isSmallScreen ? 16 : 14,
+      paddingHorizontal: isSmallScreen ? 20 : 16,
       borderRadius: 12,
+      marginVertical: 6,
+      minHeight: 48,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 3,
     },
     takeButtonText: {
       color: '#FFFFFF',
-      fontSize: 16,
+      fontSize: isSmallScreen ? 15 : 16,
       fontWeight: '700',
       marginLeft: 8,
     },
@@ -4864,13 +5868,21 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.secondary,
-      paddingVertical: 16,
+      backgroundColor: colors.success,
+      paddingVertical: isSmallScreen ? 16 : 14,
+      paddingHorizontal: isSmallScreen ? 20 : 16,
       borderRadius: 12,
+      marginVertical: 6,
+      minHeight: 48,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 3,
     },
     completeButtonText: {
       color: '#FFFFFF',
-      fontSize: 16,
+      fontSize: isSmallScreen ? 15 : 16,
       fontWeight: '700',
       marginLeft: 8,
     },
@@ -6104,26 +7116,26 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     // Admin Settings Modal Styles
     adminSettingsContainer: {
       backgroundColor: colors.surface,
-      borderRadius: 20,
-      width: '95%',
-      maxWidth: 600,
-      maxHeight: '90%',
+      borderRadius: isSmallScreen ? 16 : 20,
+      width: isSmallScreen ? '98%' : '95%',
+      maxWidth: isSmallScreen ? '100%' : 600,
+      maxHeight: isSmallScreen ? '95%' : '90%',
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 8 },
+      shadowOffset: { width: 0, height: isSmallScreen ? 4 : 8 },
       shadowOpacity: 0.3,
-      shadowRadius: 16,
-      elevation: 16,
+      shadowRadius: isSmallScreen ? 8 : 16,
+      elevation: isSmallScreen ? 8 : 16,
     },
     adminSettingsHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: 20,
+      padding: isSmallScreen ? 16 : 20,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       backgroundColor: colors.primary + '10',
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: isSmallScreen ? 16 : 20,
+      borderTopRightRadius: isSmallScreen ? 16 : 20,
     },
     adminHeaderContent: {
       flexDirection: 'row',
@@ -6132,27 +7144,27 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       marginHorizontal: 16,
     },
     adminIconContainer: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
+      width: isSmallScreen ? 44 : 60,
+      height: isSmallScreen ? 44 : 60,
+      borderRadius: isSmallScreen ? 22 : 30,
       backgroundColor: colors.primary + '15',
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 16,
+      marginRight: isSmallScreen ? 12 : 16,
     },
     adminTitleContainer: {
       flex: 1,
     },
     adminModalTitle: {
-      fontSize: 20,
+      fontSize: isSmallScreen ? 16 : isMediumScreen ? 18 : 20,
       fontWeight: '700',
       color: colors.text,
       marginBottom: 4,
     },
     adminModalSubtitle: {
-      fontSize: 14,
+      fontSize: isSmallScreen ? 12 : 14,
       color: colors.textMuted,
-      lineHeight: 20,
+      lineHeight: isSmallScreen ? 16 : 20,
     },
     adminSaveButton: {
       flexDirection: 'row',
@@ -6185,6 +7197,660 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       color: colors.textSecondary,
       marginBottom: 8,
       lineHeight: 20,
+    },
+    
+    // Neue Admin-Styles
+    vacationCard: {
+      backgroundColor: colors.background,
+      padding: isSmallScreen ? 12 : 16,
+      borderRadius: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    vacationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    vacationUser: {
+      fontSize: isSmallScreen ? 14 : 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    statusBadgeText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '500',
+    },
+    vacationDates: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    vacationReason: {
+      fontSize: 14,
+      color: colors.text,
+      marginBottom: 12,
+    },
+    vacationActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      borderRadius: 8,
+      gap: 4,
+    },
+    actionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 40,
+    },
+    emptyStateText: {
+      fontSize: 16,
+      color: colors.textMuted,
+      marginTop: 12,
+    },
+    attendanceCard: {
+      backgroundColor: colors.background,
+      padding: isSmallScreen ? 12 : 16,
+      borderRadius: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    attendanceHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    attendanceUser: {
+      fontSize: isSmallScreen ? 14 : 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    statusIndicator: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    attendanceDetails: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    attendanceTime: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 4,
+      fontStyle: 'italic',
+    },
+    teamCard: {
+      backgroundColor: colors.background,
+      padding: isSmallScreen ? 12 : 16,
+      borderRadius: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    teamHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    teamName: {
+      fontSize: isSmallScreen ? 14 : 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    teamStatusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    teamStatusText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '500',
+    },
+    teamDistrict: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    teamMembers: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    statusActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    statusButton: {
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statusButtonText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
+    
+    // Benutzerübersicht Styles
+    userOverviewCard: {
+      backgroundColor: colors.surface,
+      padding: isSmallScreen ? 16 : 20,
+      borderRadius: 16,
+      marginBottom: 16,
+      marginHorizontal: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    userOverviewHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+    userBasicInfo: {
+      flex: 1,
+    },
+    userOverviewName: {
+      fontSize: isSmallScreen ? 16 : 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    userOverviewEmail: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    userRoleBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+    },
+    userRoleBadgeText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '600',
+    },
+    userAssignmentInfo: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 16,
+    },
+    assignmentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    assignmentLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      marginLeft: 8,
+      marginRight: 8,
+      minWidth: 70,
+    },
+    assignmentValue: {
+      fontSize: 14,
+      color: colors.text,
+      flex: 1,
+    },
+
+    // Modern Admin Button Styles
+    modernAdminButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: isSmallScreen ? 14 : 16,
+      paddingHorizontal: isSmallScreen ? 16 : 20,
+      borderRadius: 12,
+      marginTop: 12,
+      shadowColor: 'rgba(0, 0, 0, 0.1)',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    modernButtonIcon: {
+      width: isSmallScreen ? 44 : 48,
+      height: isSmallScreen ? 44 : 48,
+      borderRadius: isSmallScreen ? 22 : 24,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: isSmallScreen ? 12 : 16,
+    },
+    modernButtonContent: {
+      flex: 1,
+    },
+    modernButtonTitle: {
+      color: '#FFFFFF',
+      fontSize: isSmallScreen ? 14 : 16,
+      fontWeight: '700',
+      marginBottom: 2,
+    },
+    modernButtonSubtitle: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: isSmallScreen ? 11 : 13,
+      fontWeight: '500',
+    },
+
+    // Premium Modal Styles
+    premiumModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    premiumModalContainer: {
+      backgroundColor: colors.background,
+      borderRadius: 24,
+      width: '100%',
+      maxWidth: isSmallScreen ? '100%' : 600,
+      maxHeight: '90%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 25,
+    },
+    premiumModalHeader: {
+      backgroundColor: '#3B82F6',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingVertical: 20,
+      paddingHorizontal: 24,
+      position: 'relative',
+    },
+    premiumCloseButton: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    premiumHeaderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    premiumIconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    premiumTitleContainer: {
+      flex: 1,
+    },
+    premiumModalTitle: {
+      fontSize: isSmallScreen ? 20 : 24,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      marginBottom: 4,
+    },
+    premiumModalSubtitle: {
+      fontSize: isSmallScreen ? 14 : 16,
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontWeight: '500',
+    },
+
+    // Premium Vacation Card Styles
+    premiumVacationCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      marginBottom: 16,
+      marginHorizontal: 16,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 6,
+      overflow: 'hidden',
+    },
+    vacationCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    userAvatarContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primary + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    vacationUserInfo: {
+      flex: 1,
+    },
+    premiumVacationUser: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    vacationDepartment: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    premiumStatusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    premiumStatusText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '600',
+    },
+    vacationDetails: {
+      padding: 16,
+    },
+    vacationInfoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    vacationInfoLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      marginLeft: 8,
+      marginRight: 8,
+      minWidth: 80,
+    },
+    vacationInfoValue: {
+      fontSize: 14,
+      color: colors.text,
+      flex: 1,
+    },
+    premiumVacationActions: {
+      flexDirection: 'row',
+      padding: 16,
+      gap: 12,
+      backgroundColor: colors.background + '80',
+    },
+    premiumActionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      borderRadius: 10,
+      gap: 6,
+    },
+    premiumActionText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    premiumEmptyState: {
+      alignItems: 'center',
+      paddingVertical: 60,
+      paddingHorizontal: 20,
+    },
+    emptyIconContainer: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    
+    // Team Creation Styles
+    addMemberButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: colors.primary + '10',
+      borderWidth: 2,
+      borderColor: colors.primary + '30',
+      borderStyle: 'dashed',
+      borderRadius: 12,
+      marginBottom: 8,
+    },
+    addMemberText: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    memberHint: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontStyle: 'italic',
+      lineHeight: 16,
+    },
+
+    // Modern Section Header Styles
+    modernSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 16,
+      marginBottom: 16,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    sectionIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    sectionTextContainer: {
+      flex: 1,
+    },
+    modernSectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    modernSectionSubtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      fontWeight: '500',
+    },
+    modernQuickButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    // User Selection Modal Styles
+    confirmButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: colors.primary,
+      borderRadius: 20,
+    },
+    confirmButtonText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    userSelectionCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: 12,
+      marginHorizontal: 16,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    userSelectionCardSelected: {
+      borderColor: colors.success,
+      backgroundColor: colors.success + '10',
+    },
+    userSelectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+    },
+    userSelectionInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    userSelectionName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    userSelectionEmail: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    selectionIndicator: {
+      marginLeft: 12,
+    },
+    userSelectionDetails: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      paddingTop: 0,
+    },
+    userSelectionDetail: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    
+    // Team Übersicht Styles
+    sectionTitle: {
+      fontSize: isSmallScreen ? 16 : 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginVertical: 16,
+      marginHorizontal: 16,
+    },
+    teamCard: {
+      backgroundColor: colors.surface,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    teamHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    teamNameSection: {
+      flex: 1,
+    },
+    teamName: {
+      fontSize: isSmallScreen ? 16 : 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    teamDistrict: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    teamMemberCount: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginBottom: 12,
+    },
+    teamMembersContainer: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 12,
+    },
+    teamMemberItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 6,
+    },
+    memberStatusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginRight: 8,
+    },
+    memberName: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.text,
+      fontWeight: '500',
+    },
+    memberStatus: {
+      fontSize: 12,
+      color: colors.textMuted,
     },
     iconPreview: {
       width: 80,
@@ -6249,6 +7915,30 @@ const MainApp = ({ appConfig, setAppConfig }) => {
             </View>
           </View>
           <View style={dynamicStyles.headerButtons}>
+            {/* Admin Settings Button - Only visible for admins */}
+            {user?.role === 'admin' && (
+              <TouchableOpacity 
+                style={[dynamicStyles.headerButton, { 
+                  backgroundColor: colors.primary,
+                  marginRight: 8,
+                  shadowColor: colors.shadow,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 4,
+                  elevation: 4,
+                }]} 
+                onPress={() => setShowAdminDashboardModal(true)}
+                accessible={true}
+                accessibilityLabel="Admin-Dashboard öffnen"
+              >
+                <Ionicons 
+                  name="settings" 
+                  size={22} 
+                  color="#FFFFFF" 
+                />
+              </TouchableOpacity>
+            )}
+            
             {/* Theme Toggle Button */}
             <TouchableOpacity 
               style={[dynamicStyles.headerButton, dynamicStyles.themeToggleButton]} 
@@ -6480,6 +8170,91 @@ const MainApp = ({ appConfig, setAppConfig }) => {
         </View>
       </TouchableOpacity>
 
+      {/* Team Chat - nur für Team-Mitglieder */}
+      {userTeam && (
+        <TouchableOpacity 
+          style={dynamicStyles.card}
+          onPress={() => setShowTeamChatModal(true)}
+          activeOpacity={0.8}
+        >
+          <View style={dynamicStyles.cardHeader}>
+            <Ionicons name="chatbubbles" size={24} color={colors.success} />
+            <Text style={dynamicStyles.cardTitle}>Team Chat</Text>
+            <View style={dynamicStyles.cardHeaderRight}>
+              <View style={[dynamicStyles.statusBadge, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
+                <Text style={[dynamicStyles.statusBadgeText, { color: colors.success }]}>
+                  {userTeam.name}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </View>
+          </View>
+          
+          <View style={dynamicStyles.summaryRow}>
+            <View style={dynamicStyles.summaryItem}>
+              <Text style={[dynamicStyles.summaryNumber, { color: colors.success }]}>
+                {userTeam.members?.length || 0}
+              </Text>
+              <Text style={dynamicStyles.summaryLabel}>Mitglieder</Text>
+            </View>
+            <View style={dynamicStyles.summaryItem}>
+              <Text style={[dynamicStyles.summaryNumber, { color: colors.primary }]}>
+                {chatMessages.length}
+              </Text>
+              <Text style={dynamicStyles.summaryLabel}>Nachrichten</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* Mein Bezirk Anzeige */}
+      <TouchableOpacity 
+        style={dynamicStyles.card}
+        onPress={() => {
+          Alert.alert(
+            '🗺️ Mein Arbeitsbezirk',
+            user?.assigned_district ? 
+              `Sie sind aktuell dem Bezirk "${user.assigned_district}" zugewiesen.\n\n📍 Arbeitsgebiet: ${user.district_area || 'Standard-Bereich'}` :
+              'Sie sind aktuell keinem Bezirk zugewiesen.\n\nBitte wenden Sie sich an Ihren Administrator.',
+            [{ text: 'OK' }]
+          );
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={dynamicStyles.cardHeader}>
+          <Ionicons name="location" size={24} color={colors.primary} />
+          <Text style={dynamicStyles.cardTitle}>Mein Bezirk</Text>
+          <View style={dynamicStyles.cardHeaderRight}>
+            <View style={[dynamicStyles.statusBadge, { 
+              backgroundColor: user?.assigned_district ? colors.success + '20' : colors.warning + '20', 
+              borderColor: user?.assigned_district ? colors.success : colors.warning 
+            }]}>
+              <Text style={[dynamicStyles.statusBadgeText, { 
+                color: user?.assigned_district ? colors.success : colors.warning 
+              }]}>
+                {user?.assigned_district || 'Nicht zugewiesen'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </View>
+        </View>
+        
+        <View style={dynamicStyles.summaryRow}>
+          <View style={dynamicStyles.summaryItem}>
+            <Text style={[dynamicStyles.summaryNumber, { color: colors.primary, fontSize: 14 }]}>
+              {user?.assigned_district || 'Nicht zugewiesen'}
+            </Text>
+            <Text style={dynamicStyles.summaryLabel}>Bezirk</Text>
+          </View>
+          <View style={dynamicStyles.summaryItem}>
+            <Text style={[dynamicStyles.summaryNumber, { color: colors.textSecondary, fontSize: 14 }]}>
+              {user?.district_area || 'Standard-Bereich'}
+            </Text>
+            <Text style={dynamicStyles.summaryLabel}>Arbeitsgebiet</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
       <View style={{ height: 20 }} />
     </ScrollView>
   );
@@ -6676,11 +8451,104 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           <Text style={dynamicStyles.cardTitle}>🛠️ Admin-Aktionen</Text>
           
           <TouchableOpacity 
-            style={[dynamicStyles.adminActionButton, { backgroundColor: colors.success }]}
+            style={[dynamicStyles.modernAdminButton, { backgroundColor: '#10B981' }]}
             onPress={() => setShowAddUserModal(true)}
           >
-            <Ionicons name="person-add" size={20} color="#FFFFFF" />
-            <Text style={dynamicStyles.adminActionButtonText}>Benutzer hinzufügen</Text>
+            <View style={dynamicStyles.modernButtonIcon}>
+              <Ionicons name="person-add" size={24} color="#FFFFFF" />
+            </View>
+            <View style={dynamicStyles.modernButtonContent}>
+              <Text style={dynamicStyles.modernButtonTitle}>👤 Benutzer hinzufügen</Text>
+              <Text style={dynamicStyles.modernButtonSubtitle}>Neue Mitarbeiter registrieren</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[dynamicStyles.modernAdminButton, { backgroundColor: '#3B82F6' }]}
+            onPress={() => {
+              setShowVacationManagementModal(true);
+              loadPendingVacations();
+            }}
+          >
+            <View style={dynamicStyles.modernButtonIcon}>
+              <Ionicons name="calendar" size={24} color="#FFFFFF" />
+            </View>
+            <View style={dynamicStyles.modernButtonContent}>
+              <Text style={dynamicStyles.modernButtonTitle}>📅 Urlaubsanträge</Text>
+              <Text style={dynamicStyles.modernButtonSubtitle}>Anträge genehmigen/ablehnen</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[dynamicStyles.modernAdminButton, { backgroundColor: '#8B5CF6' }]}
+            onPress={() => {
+              setShowAttendanceModal(true);
+              loadAttendanceList();
+            }}
+          >
+            <View style={dynamicStyles.modernButtonIcon}>
+              <Ionicons name="people" size={24} color="#FFFFFF" />
+            </View>
+            <View style={dynamicStyles.modernButtonContent}>
+              <Text style={dynamicStyles.modernButtonTitle}>👥 Anwesenheitsliste</Text>
+              <Text style={dynamicStyles.modernButtonSubtitle}>Wer ist im Dienst</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[dynamicStyles.modernAdminButton, { backgroundColor: '#F59E0B' }]}
+            onPress={() => {
+              setShowTeamStatusModal(true);
+              loadTeamStatus();
+            }}
+          >
+            <View style={dynamicStyles.modernButtonIcon}>
+              <Ionicons name="shield" size={24} color="#FFFFFF" />
+            </View>
+            <View style={dynamicStyles.modernButtonContent}>
+              <Text style={dynamicStyles.modernButtonTitle}>🚔 Gruppenstatusanzeige</Text>
+              <Text style={dynamicStyles.modernButtonSubtitle}>Team-Status verwalten</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[dynamicStyles.modernAdminButton, { backgroundColor: '#EF4444' }]}
+            onPress={() => {
+              setShowUserOverviewModal(true);
+              loadUserOverview();
+            }}
+          >
+            <View style={dynamicStyles.modernButtonIcon}>
+              <Ionicons name="analytics" size={24} color="#FFFFFF" />
+            </View>
+            <View style={dynamicStyles.modernButtonContent}>
+              <Text style={dynamicStyles.modernButtonTitle}>👥 Benutzerübersicht</Text>
+              <Text style={dynamicStyles.modernButtonSubtitle}>Team & Bezirk Übersicht</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[dynamicStyles.modernAdminButton, { backgroundColor: '#06B6D4' }]}
+            onPress={() => {
+              // Direkt Team-Creation Modal öffnen
+              setNewTeamData({ name: '', description: '', district: '', max_members: 6, selectedMembers: [] });
+              setShowAddTeamModal(true);
+              loadUserOverview(); // Lade verfügbare Benutzer
+            }} 
+          >
+            <View style={dynamicStyles.modernButtonIcon}>
+              <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+            </View>
+            <View style={dynamicStyles.modernButtonContent}>
+              <Text style={dynamicStyles.modernButtonTitle}>👥 Neues Team erstellen</Text>
+              <Text style={dynamicStyles.modernButtonSubtitle}>Team-Management</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -6786,7 +8654,10 @@ const MainApp = ({ appConfig, setAppConfig }) => {
               <Ionicons name="person-add" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => loadUsersByStatus()}>
+          <TouchableOpacity onPress={() => {
+            loadUsersByStatus();
+            loadTeamStatus();
+          }}>
             <Ionicons name="refresh" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -6794,9 +8665,56 @@ const MainApp = ({ appConfig, setAppConfig }) => {
 
       <ScrollView 
         style={dynamicStyles.teamList}
-        refreshControl={<RefreshControl refreshing={teamLoading} onRefresh={() => loadUsersByStatus()} />}
+        refreshControl={<RefreshControl refreshing={teamLoading} onRefresh={() => {
+          loadUsersByStatus();
+          loadTeamStatus();
+        }} />}
         showsVerticalScrollIndicator={false}
       >
+        {/* Team-basierte Gruppierung */}
+        {teamStatusList.length > 0 ? (
+          <>
+            <Text style={dynamicStyles.sectionTitle}>🚔 Teams nach Bezirken</Text>
+            {teamStatusList.map((team) => (
+              <View key={team.id} style={dynamicStyles.teamCard}>
+                <View style={dynamicStyles.teamHeader}>
+                  <View style={dynamicStyles.teamNameSection}>
+                    <Text style={dynamicStyles.teamName}>{team.name}</Text>
+                    <Text style={dynamicStyles.teamDistrict}>🗺️ {team.district}</Text>
+                  </View>
+                  <View style={[dynamicStyles.teamStatusBadge, 
+                    { backgroundColor: getTeamStatusColor(team.status) }]}>
+                    <Text style={dynamicStyles.teamStatusText}>
+                      {getTeamStatusIcon(team.status)} {team.status}
+                    </Text>
+                  </View>
+                </View>
+                
+                <Text style={dynamicStyles.teamMemberCount}>
+                  👥 {team.member_count} Mitglieder
+                </Text>
+                
+                {/* Team-Mitglieder */}
+                {team.members && team.members.length > 0 && (
+                  <View style={dynamicStyles.teamMembersContainer}>
+                    {team.members.map((member, index) => (
+                      <View key={member.id || index} style={dynamicStyles.teamMemberItem}>
+                        <View style={[dynamicStyles.memberStatusDot, 
+                          { backgroundColor: getStatusColor(member.status) }]} />
+                        <Text style={dynamicStyles.memberName}>{member.username}</Text>
+                        <Text style={dynamicStyles.memberStatus}>{member.status}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))}
+            
+            <Text style={dynamicStyles.sectionTitle}>👤 Benutzer nach Status</Text>
+          </>
+        ) : null}
+        
+        {/* Bestehende Status-Gruppierung */}
         {Object.entries(usersByStatus).map(([status, users]) => (
           <View key={status} style={dynamicStyles.statusGroup}>
             <View style={dynamicStyles.statusHeader}>
@@ -6844,6 +8762,14 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                   </Text>
                   <Text style={dynamicStyles.officerBadge}>
                     🆔 Dienstnummer: {officer.service_number || 'N/A'}
+                  </Text>
+                  {/* Team-Zugehörigkeit anzeigen */}
+                  <Text style={[dynamicStyles.officerBadge, { color: colors.secondary }]}>
+                    👥 Team: {officer.patrol_team || 'Kein Team'}
+                  </Text>
+                  {/* Zugewiesener Bezirk anzeigen */}
+                  <Text style={[dynamicStyles.officerBadge, { color: colors.warning }]}>
+                    🗺️ Bezirk: {officer.assigned_district || 'Nicht zugewiesen'}
                   </Text>
                   {officer.is_online && (
                     <Text style={[dynamicStyles.officerBadge, { color: colors.success }]}>
@@ -7150,7 +9076,9 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                           } : {};
                           
                           await axios.delete(`${API_URL}/api/reports/${report.id}`, config);
-                          await loadReports(); // Liste neu laden
+                          if (typeof loadReports === 'function') {
+                            await loadReports(); // Liste neu laden
+                          }
                           
                         } catch (error) {
                           console.error('Fehler beim Löschen des Berichts:', error);
@@ -7171,13 +9099,28 @@ const MainApp = ({ appConfig, setAppConfig }) => {
     </View>
   );
 
-  // Schichtverwaltung Screen
+  // Schichtverwaltung Screen  
   const renderShiftManagementScreen = () => (
-    <ShiftManagementComponent 
-      user={user}
-      token={token}
-      API_URL={API_URL}
-    />
+    <View style={dynamicStyles.content}>
+      <View style={dynamicStyles.screenHeader}>
+        <Text style={dynamicStyles.screenTitle}>⏰ Schichtverwaltung</Text>
+        <View style={dynamicStyles.headerActions}>
+          <TouchableOpacity onPress={() => loadData()}>
+            <Ionicons name="refresh" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ShiftManagementComponent 
+        user={user}
+        token={token}
+        API_URL={API_URL}
+        colors={colors}
+        isDarkMode={isDarkMode}
+        isSmallScreen={isSmallScreen}
+        isMediumScreen={isMediumScreen}
+      />
+    </View>
   );
 
   const renderDatabaseScreen = () => (
@@ -7193,6 +9136,12 @@ const MainApp = ({ appConfig, setAppConfig }) => {
               🔍 Gesuchte • ⚠️ Vermisste • ✅ Erledigt
             </Text>
           </View>
+          <TouchableOpacity
+            style={[dynamicStyles.headerActionButton, { backgroundColor: colors.primary }]}
+            onPress={createNewPerson}
+          >
+            <Ionicons name="add" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -7298,17 +9247,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           ) : null}
         </View>
       </View>
-
-      {/* Add Person Button */}
-      <TouchableOpacity
-        style={[dynamicStyles.actionButton, { backgroundColor: colors.primary }]}
-        onPress={createNewPerson}
-      >
-        <Ionicons name="person-add" size={20} color="#FFFFFF" />
-        <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>
-          Person hinzufügen
-        </Text>
-      </TouchableOpacity>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {databaseLoading ? (
@@ -7813,7 +9751,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
       case 'myteam': return renderMyTeamScreen();
       case 'database': return renderDatabaseScreen();
       case 'schichten': return renderShiftManagementScreen();
-      case 'admin': return renderAdminScreen();
       default: return renderHomeScreen();
     }
   };
@@ -7873,7 +9810,7 @@ const MainApp = ({ appConfig, setAppConfig }) => {
           </Text>
         </TouchableOpacity>
         
-        {/* Neue Schichtverwaltung Tab */}
+        {/* Schichtverwaltung Tab */}
         <TouchableOpacity 
           style={[dynamicStyles.tabItem, activeTab === 'schichten' && dynamicStyles.tabItemActive]}
           onPress={() => setActiveTab('schichten')}
@@ -7915,23 +9852,6 @@ const MainApp = ({ appConfig, setAppConfig }) => {
             Team
           </Text>
         </TouchableOpacity>
-
-        {/* Admin Tab - Only visible for admins */}
-        {user?.role === 'admin' && (
-          <TouchableOpacity 
-            style={[dynamicStyles.tabItem, activeTab === 'admin' && dynamicStyles.tabItemActive]}
-            onPress={() => setActiveTab('admin')}
-          >
-            <Ionicons 
-              name={activeTab === 'admin' ? 'settings' : 'settings-outline'} 
-              size={24} 
-              color={activeTab === 'admin' ? '#FFFFFF' : colors.textMuted} 
-            />
-            <Text style={[dynamicStyles.tabLabel, activeTab === 'admin' && dynamicStyles.tabLabelActive]}>
-              Admin
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Profile Modal mit Dark/Light Mode */}
@@ -8343,16 +10263,44 @@ const MainApp = ({ appConfig, setAppConfig }) => {
                 {/* Karten-Button komplett entfernt */}
 
                 {(!selectedIncident.assigned_to || selectedIncident.assigned_to === user?.id) && (
-                  <TouchableOpacity style={dynamicStyles.takeButton} onPress={takeIncident}>
-                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                    <Text style={dynamicStyles.takeButtonText}>✋ Vorfall übernehmen</Text>
+                  <TouchableOpacity 
+                    style={[dynamicStyles.takeButton, { minHeight: 48 }]} 
+                    onPress={() => {
+                      console.log('📱 TAKE INCIDENT BUTTON PRESSED');
+                      takeIncident();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                    <Text style={dynamicStyles.takeButtonText}>👤 Vorfall annehmen</Text>
                   </TouchableOpacity>
                 )}
                 
-                {selectedIncident.assigned_to === user?.id && (
-                  <TouchableOpacity style={dynamicStyles.completeButton} onPress={completeSelectedIncident}>
-                    <Ionicons name="checkmark-done" size={20} color="#FFFFFF" />
-                    <Text style={dynamicStyles.completeButtonText}>✅ Erledigt</Text>
+                {selectedIncident.assigned_to === user?.id && selectedIncident.status !== 'completed' && (
+                  <TouchableOpacity 
+                    style={[dynamicStyles.completeButton, { minHeight: 48 }]} 
+                    onPress={() => {
+                      console.log('📱 COMPLETE INCIDENT BUTTON PRESSED');
+                      completeSelectedIncident();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="checkmark-done" size={24} color="#FFFFFF" />
+                    <Text style={dynamicStyles.completeButtonText}>✅ ABSCHLIESSEN</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {selectedIncident.assigned_to === user?.id && selectedIncident.status !== 'in_progress' && (
+                  <TouchableOpacity 
+                    style={[dynamicStyles.actionButton, { backgroundColor: colors.warning, minHeight: 48 }]} 
+                    onPress={() => {
+                      console.log('📱 IN PROGRESS BUTTON PRESSED');
+                      updateIncidentStatus(selectedIncident.id, 'in_progress', selectedIncident.title);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="construct" size={24} color="#FFFFFF" />
+                    <Text style={[dynamicStyles.actionButtonText, { color: '#FFFFFF' }]}>⚙️ IN BEARBEITUNG</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -8570,7 +10518,7 @@ Beispielinhalt:
                 
                 <View style={dynamicStyles.adminHeaderContent}>
                   <View style={dynamicStyles.adminIconContainer}>
-                    <Ionicons name="settings" size={48} color={colors.primary} />
+                    <Ionicons name="settings" size={isSmallScreen ? 32 : 48} color={colors.primary} />
                   </View>
                   <View style={dynamicStyles.adminTitleContainer}>
                     <Text style={dynamicStyles.adminModalTitle}>Admin Einstellungen</Text>
@@ -8961,6 +10909,95 @@ Beispielinhalt:
               <View style={{ height: 40 }} />
             </ScrollView>
           </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ALLE ALTEN ADMIN MODALS ENTFERNT - NUR NEUE VERSIONEN BEHALTEN */}
+
+      {/* ALTE BENUTZERÜBERSICHT MODAL ENTFERNT - NUR NEUE VERSION BEHALTEN */}
+
+      {/* ALTES TEAM CREATION MODAL ENTFERNT - NUR NEUE VERSION BEHALTEN */}
+
+      {/* Benutzer-Auswahl Modal für Team-Erstellung */}
+      <Modal
+        visible={showUserSelectionModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowUserSelectionModal(false)}
+      >
+        <SafeAreaView style={dynamicStyles.modalOverlay}>
+          <View style={dynamicStyles.modalContainer}>
+            <View style={dynamicStyles.modalHeader}>
+              <TouchableOpacity 
+                style={dynamicStyles.closeButton}
+                onPress={() => setShowUserSelectionModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+              <Text style={dynamicStyles.modalTitle}>👥 Benutzer auswählen</Text>
+              <TouchableOpacity 
+                style={dynamicStyles.confirmButton}
+                onPress={() => {
+                  setShowUserSelectionModal(false);
+                  Alert.alert('✅ Ausgewählt', `${selectedUsers.length} Benutzer für das Team ausgewählt`);
+                }}
+              >
+                <Text style={dynamicStyles.confirmButtonText}>Fertig</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={dynamicStyles.modalContent} showsVerticalScrollIndicator={false}>
+              {userOverviewList.map((user, index) => (
+                <TouchableOpacity 
+                  key={user.id || index} 
+                  style={[
+                    dynamicStyles.userSelectionCard,
+                    selectedUsers.includes(user.id) && dynamicStyles.userSelectionCardSelected
+                  ]}
+                  onPress={() => {
+                    if (selectedUsers.includes(user.id)) {
+                      setSelectedUsers(prev => prev.filter(id => id !== user.id));
+                    } else {
+                      setSelectedUsers(prev => [...prev, user.id]);
+                    }
+                  }}
+                >
+                  <View style={dynamicStyles.userSelectionHeader}>
+                    <View style={dynamicStyles.userAvatarContainer}>
+                      <Ionicons name="person" size={20} color={colors.primary} />
+                    </View>
+                    <View style={dynamicStyles.userSelectionInfo}>
+                      <Text style={dynamicStyles.userSelectionName}>{user.username}</Text>
+                      <Text style={dynamicStyles.userSelectionEmail}>{user.email}</Text>
+                    </View>
+                    <View style={dynamicStyles.selectionIndicator}>
+                      {selectedUsers.includes(user.id) ? (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                      ) : (
+                        <Ionicons name="radio-button-off" size={24} color={colors.textMuted} />
+                      )}
+                    </View>
+                  </View>
+                  
+                  <View style={dynamicStyles.userSelectionDetails}>
+                    <Text style={dynamicStyles.userSelectionDetail}>
+                      🏢 Team: {user.teamName || 'Nicht zugewiesen'}
+                    </Text>
+                    <Text style={dynamicStyles.userSelectionDetail}>
+                      🗺️ Bezirk: {user.districtName || 'Nicht zugewiesen'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              
+              {userOverviewList.length === 0 && (
+                <View style={dynamicStyles.emptyState}>
+                  <Ionicons name="people-outline" size={48} color={colors.textMuted} />
+                  <Text style={dynamicStyles.emptyStateText}>Keine Benutzer verfügbar</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -9978,11 +12015,14 @@ Beispielinhalt:
                     <View style={dynamicStyles.detailRow}>
                       <Text style={dynamicStyles.detailLabel}>📸 Foto:</Text>
                       <View style={dynamicStyles.photoContainer}>
-                        <TouchableOpacity onPress={() => {
-                          Alert.alert('📸 Foto', 'Foto des Berichts', [
-                            { text: 'OK' }
-                          ]);
-                        }}>
+                        <TouchableOpacity 
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            Alert.alert('📸 Foto', 'Foto des Berichts', [
+                              { text: 'OK' }
+                            ]);
+                          }}
+                        >
                           <Image 
                             source={{ uri: selectedReport.images[0] }} 
                             style={dynamicStyles.reportPhoto}
@@ -10132,11 +12172,1233 @@ Beispielinhalt:
         </SafeAreaView>
       </Modal>
 
-      {/* SOS Modal */}
+      {/* Vacation Rejection Modal */}
+      <Modal
+        visible={showRejectionModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowRejectionModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={dynamicStyles.profileModalOverlay}>
+            <View style={dynamicStyles.profileModalContainer}>
+              <View style={dynamicStyles.profileModalHeader}>
+                <TouchableOpacity 
+                  style={dynamicStyles.profileCloseButton}
+                  onPress={() => {
+                    setShowRejectionModal(false);
+                    setRejectionReason('');
+                  }}
+                >
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                </TouchableOpacity>
+                <Text style={dynamicStyles.profileModalTitle}>❌ Urlaubsantrag ablehnen</Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              <ScrollView style={dynamicStyles.profileModalContent} showsVerticalScrollIndicator={false}>
+                <View style={dynamicStyles.rejectionWarning}>
+                  <View style={dynamicStyles.rejectionWarningIcon}>
+                    <Ionicons name="warning" size={32} color={colors.error} />
+                  </View>
+                  <Text style={dynamicStyles.rejectionWarningTitle}>Ablehnungsgrund erforderlich</Text>
+                  <Text style={dynamicStyles.rejectionWarningText}>
+                    Geben Sie bitte einen nachvollziehbaren Grund für die Ablehnung des Urlaubsantrags an.
+                  </Text>
+                </View>
+
+                <View style={dynamicStyles.profileFormGroup}>
+                  <Text style={dynamicStyles.profileFormLabel}>📝 Grund für Ablehnung *</Text>
+                  <TextInput
+                    style={[dynamicStyles.profileFormInput, { 
+                      height: 120, 
+                      textAlignVertical: 'top',
+                      paddingTop: 16
+                    }]}
+                    value={rejectionReason}
+                    onChangeText={setRejectionReason}
+                    placeholder="z.B. Personalengpass im gewünschten Zeitraum, bereits zu viele Urlaubsanträge genehmigt..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={5}
+                  />
+                  <Text style={dynamicStyles.rejectionHint}>
+                    💡 Der Grund wird dem Antragsteller mitgeteilt
+                  </Text>
+                </View>
+              </ScrollView>
+
+              <View style={dynamicStyles.rejectionButtonRow}>
+                <TouchableOpacity
+                  style={[dynamicStyles.rejectionCancelButton]}
+                  onPress={() => {
+                    setShowRejectionModal(false);
+                    setRejectionReason('');
+                  }}
+                >
+                  <Text style={dynamicStyles.rejectionCancelButtonText}>Abbrechen</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[dynamicStyles.rejectionSubmitButton]}
+                  onPress={handleVacationRejection}
+                  disabled={!rejectionReason.trim()}
+                >
+                  <Ionicons name="close-circle" size={20} color="#FFFFFF" />
+                  <Text style={dynamicStyles.rejectionSubmitButtonText}>Antrag ablehnen</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Admin Dashboard Modal - Same style as AddUserModal */}
+      <Modal 
+        visible={showAdminDashboardModal} 
+        animationType="slide" 
+        onRequestClose={() => setShowAdminDashboardModal(false)}
+      >
+        <SafeAreaView style={dynamicStyles.container}>
+          <View style={dynamicStyles.profileModalHeader}>
+            <TouchableOpacity 
+              style={dynamicStyles.profileCloseButton}
+              onPress={() => setShowAdminDashboardModal(false)}
+            >
+              <Ionicons name="close" size={24} color={colors.textMuted} />
+            </TouchableOpacity>
+            <Text style={dynamicStyles.profileModalTitle}>⚙️ Admin-Dashboard</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <ScrollView style={dynamicStyles.profileModalContent} showsVerticalScrollIndicator={false}>
+            <View style={dynamicStyles.profileInfoCard}>
+              <Text style={dynamicStyles.profileInfoText}>
+                
+              </Text>
+            </View>
+
+            <Text style={dynamicStyles.profileSectionTitle}>👥 Benutzerverwaltung</Text>
+
+            {/* User Management Cards */}
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                safeModalTransition(
+                  () => setShowAdminDashboardModal(false),
+                  () => setShowAddUserModal(true)
+                );
+              }}
+            >
+              <View style={dynamicStyles.profileActionIcon}>
+                <Ionicons name="person-add" size={24} color={colors.success} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>👤 Benutzer hinzufügen</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Neue Team-Mitglieder registrieren</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                safeModalTransition(
+                  () => setShowAdminDashboardModal(false),
+                  () => setShowUserOverviewModal(true),
+                  loadUserOverview
+                );
+              }}
+            >
+              <View style={[dynamicStyles.profileActionIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Ionicons name="people" size={24} color={colors.primary} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>Benutzerübersicht</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Team-Zuordnungen • Bezirke • Statistiken</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                // Bleibe im Admin Dashboard, öffne Bezirk-Zuordnung Modal
+                loadAvailableUsers();
+                loadAvailableDistricts();
+                setShowDistrictAssignmentModal(true);
+              }}
+            >
+              <View style={dynamicStyles.profileActionIcon}>
+                <Ionicons name="location" size={24} color={colors.success} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>👤 Bezirk zuordnen</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Benutzer zu Arbeitsbezirken zuweisen</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                // Bleibe im Admin Dashboard, öffne nur das neue Modal
+                loadAvailableUsers();
+                setShowAddTeamModal(true);
+              }}
+            >
+              <View style={[dynamicStyles.profileActionIcon, { backgroundColor: colors.warning + '20' }]}>
+                <Ionicons name="people-circle" size={24} color={colors.warning} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>👥 Neues Team erstellen</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Teams und Patrouillen verwalten</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={dynamicStyles.profileSectionTitle}>📋 Verwaltung & Berichte</Text>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                // Bleibe im Admin Dashboard, öffne nur das neue Modal
+                loadPendingVacations();
+                setShowVacationManagementModal(true);
+              }}
+            >
+              <View style={[dynamicStyles.profileActionIcon, { backgroundColor: colors.secondary + '20' }]}>
+                <Ionicons name="calendar" size={24} color={colors.secondary} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>Urlaubsanträge</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Genehmigen • Ablehnen • Verwalten</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                // Bleibe im Admin Dashboard, öffne nur das neue Modal
+                loadUsersByStatus();
+                setShowAttendanceModal(true);
+              }}
+            >
+              <View style={[dynamicStyles.profileActionIcon, { backgroundColor: colors.success + '20' }]}>
+                <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>👥 Anwesenheitsliste</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Wer ist gerade im Dienst</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                safeModalTransition(
+                  () => setShowAdminDashboardModal(false),
+                  () => setShowTeamStatusModal(true),
+                  loadUsersByStatus
+                );
+              }}
+            >
+              <View style={[dynamicStyles.profileActionIcon, { backgroundColor: colors.error + '20' }]}>
+                <Ionicons name="stats-chart" size={24} color={colors.error} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>Gruppenstatus</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>Team-Status • Einsatzbereitschaft • Verwaltung</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={dynamicStyles.profileSectionTitle}>⚙️ System</Text>
+
+            <TouchableOpacity 
+              style={dynamicStyles.profileActionCard}
+              activeOpacity={0.8}
+              disabled={modalTransitionLock}
+              onPress={() => {
+                safeModalTransition(
+                  () => setShowAdminDashboardModal(false),
+                  () => setShowAdminSettingsModal(true)
+                );
+              }}
+            >
+              <View style={[dynamicStyles.profileActionIcon, { backgroundColor: colors.textMuted + '20' }]}>
+                <Ionicons name="settings" size={24} color={colors.textMuted} />
+              </View>
+              <View style={dynamicStyles.profileActionContent}>
+                <Text style={dynamicStyles.profileActionTitle}>Admin Einstellungen</Text>
+                <Text style={dynamicStyles.profileActionSubtitle}>App-Konfiguration verwalten</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Benutzerübersicht Modal - Exact Style like Urlaubsantrag */}
+      <Modal
+        visible={showUserOverviewModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowUserOverviewModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={dynamicStyles.shiftModalOverlay}>
+            <View style={[dynamicStyles.shiftModalContainer, { maxHeight: '80%' }]}>
+              {/* Modern Header */}
+              <View style={dynamicStyles.shiftModernModalHeader}>
+                <View style={dynamicStyles.shiftModernModalIconContainer}>
+                  <Ionicons name="people" size={28} color={colors.primary} />
+                </View>
+                <View style={dynamicStyles.shiftModernModalTitleContainer}>
+                  <Text style={dynamicStyles.shiftModernModalTitle}>👥 Benutzerübersicht</Text>
+                  <Text style={dynamicStyles.shiftModernModalSubtitle}>Team-Zuordnungen • Bezirke • Statistiken</Text>
+                </View>
+                <TouchableOpacity
+                  style={dynamicStyles.shiftModernModalCloseButton}
+                  onPress={() => setShowUserOverviewModal(false)}
+                >
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                style={dynamicStyles.shiftModernModalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Benutzer Übersicht - Simple Clean Style like Urlaubsantrag */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>👮 Benutzer-Liste</Text>
+                  
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Gesamt Benutzer</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="people" size={20} color={colors.primary} />
+                      <Text style={dynamicStyles.shiftModernInput}>{userOverviewList.length} Benutzer registriert</Text>
+                    </View>
+                  </View>
+
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Im Dienst</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="shield-checkmark" size={20} color={colors.success} />
+                      <Text style={dynamicStyles.shiftModernInput}>
+                        {userOverviewList.filter(u => u.status === 'Im Dienst').length} Benutzer aktiv
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Administratoren</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="shield" size={20} color={colors.warning} />
+                      <Text style={dynamicStyles.shiftModernInput}>
+                        {userOverviewList.filter(u => u.role === 'admin').length} Admin-Benutzer
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Benutzer Details - Simple List */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>📋 Alle Benutzer</Text>
+                  
+                  {userOverviewList.length === 0 ? (
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="people-outline" size={20} color={colors.textMuted} />
+                      <Text style={[dynamicStyles.shiftModernInput, { color: colors.textMuted }]}>
+                        Keine Benutzer gefunden
+                      </Text>
+                    </View>
+                  ) : (
+                    userOverviewList.map((user, index) => (
+                      <View key={user.id || index}>
+                        <View style={dynamicStyles.shiftModernInputContainer}>
+                          <Ionicons name={user.role === 'admin' ? 'shield' : 'person'} size={20} color={colors.primary} />
+                          <Text style={dynamicStyles.shiftModernInput}>{user.username}</Text>
+                        </View>
+                        <Text style={dynamicStyles.shiftInputHint}>
+                          📧 {user.email} • 🛡️ {user.role || 'Benutzer'} • 📱 {user.phone || 'Keine Nummer'}
+                        </Text>
+                        <Text style={[dynamicStyles.shiftInputHint, { marginTop: 4, marginBottom: 16 }]}>
+                          🏢 {user.department || 'Keine Abteilung'} • 👥 {user.patrol_team || 'Kein Team'}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </ScrollView>
+
+              {/* Modern Action Buttons */}
+              <View style={dynamicStyles.shiftModernModalActions}>
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.textMuted + '20' }]}
+                  onPress={() => setShowUserOverviewModal(false)}
+                >
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: colors.textMuted }]}>
+                    Schließen
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    setShowUserOverviewModal(false);
+                    setTimeout(() => setShowAddUserModal(true), 100);
+                  }}
+                >
+                  <Ionicons name="person-add" size={18} color="#FFFFFF" />
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                    Neuer Benutzer
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Urlaubsanträge Verwaltung Modal - Exact Style like Urlaubsantrag */}
+      <Modal
+        visible={showVacationManagementModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowVacationManagementModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={dynamicStyles.shiftModalOverlay}>
+            <View style={[dynamicStyles.shiftModalContainer, { maxHeight: '80%' }]}>
+              {/* Modern Header */}
+              <View style={dynamicStyles.shiftModernModalHeader}>
+                <View style={[dynamicStyles.shiftModernModalIconContainer, { backgroundColor: colors.secondary + '20' }]}>
+                  <Ionicons name="calendar" size={28} color={colors.secondary} />
+                </View>
+                <View style={dynamicStyles.shiftModernModalTitleContainer}>
+                  <Text style={dynamicStyles.shiftModernModalTitle}>📅 Urlaubsanträge</Text>
+                  <Text style={dynamicStyles.shiftModernModalSubtitle}>Genehmigen • Ablehnen • Verwalten</Text>
+                </View>
+                <TouchableOpacity
+                  style={dynamicStyles.shiftModernModalCloseButton}
+                  onPress={() => setShowVacationManagementModal(false)}
+                >
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                style={dynamicStyles.shiftModernModalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Vacation Status Overview */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>📊 Urlaubsanträge Status</Text>
+                  
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Ausstehende Anträge</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="clock-outline" size={20} color={colors.warning} />
+                      <Text style={dynamicStyles.shiftModernInput}>{pendingVacations.length} Anträge warten auf Bearbeitung</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Pending Vacations List */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>⏳ Ausstehende Anträge</Text>
+                  
+                  {pendingVacations.length === 0 ? (
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="calendar-outline" size={20} color={colors.textMuted} />
+                      <Text style={[dynamicStyles.shiftModernInput, { color: colors.textMuted }]}>
+                        Keine ausstehenden Urlaubsanträge
+                      </Text>
+                    </View>
+                  ) : (
+                    pendingVacations.map((vacation, index) => (
+                      <View key={vacation.id || index}>
+                        <View>
+                          <Text style={dynamicStyles.shiftModernInputLabel}>{vacation.user_name}</Text>
+                          <View style={dynamicStyles.shiftModernInputContainer}>
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                            <Text style={dynamicStyles.shiftModernInput}>
+                              {vacation.start_date} bis {vacation.end_date}
+                            </Text>
+                          </View>
+                          <Text style={dynamicStyles.shiftInputHint}>
+                            📝 Grund: {vacation.reason}
+                          </Text>
+                        </View>
+                        
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 12, marginBottom: 20 }}>
+                          <TouchableOpacity 
+                            style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.success, flex: 1, marginHorizontal: 0 }]}
+                            onPress={() => handleVacationApproval(vacation.id, 'approve')}
+                          >
+                            <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                            <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 6 }]}>Genehmigen</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.error, flex: 1, marginHorizontal: 0 }]}
+                            onPress={() => {
+                              setRejectionVacationId(vacation.id);
+                              setShowRejectionModal(true);
+                            }}
+                          >
+                            <Ionicons name="close" size={16} color="#FFFFFF" />
+                            <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 6 }]}>Ablehnen</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </ScrollView>
+
+              {/* Modern Action Buttons */}
+              <View style={dynamicStyles.shiftModernModalActions}>
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.textMuted + '20' }]}
+                  onPress={() => setShowVacationManagementModal(false)}
+                >
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: colors.textMuted }]}>
+                    Schließen
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.primary }]}
+                  onPress={() => loadPendingVacations()}
+                >
+                  <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                    Aktualisieren
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Anwesenheitsliste Modal - Exact Style like Urlaubsantrag */}
+      <Modal
+        visible={showAttendanceModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAttendanceModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={dynamicStyles.shiftModalOverlay}>
+            <View style={[dynamicStyles.shiftModalContainer, { maxHeight: '80%' }]}>
+              {/* Modern Header */}
+              <View style={dynamicStyles.shiftModernModalHeader}>
+                <View style={[dynamicStyles.shiftModernModalIconContainer, { backgroundColor: colors.success + '20' }]}>
+                  <Ionicons name="checkmark-circle" size={28} color={colors.success} />
+                </View>
+                <View style={dynamicStyles.shiftModernModalTitleContainer}>
+                  <Text style={dynamicStyles.shiftModernModalTitle}>👥 Anwesenheitsliste</Text>
+                  <Text style={dynamicStyles.shiftModernModalSubtitle}>Wer ist gerade im Dienst</Text>
+                </View>
+                <TouchableOpacity
+                  style={dynamicStyles.shiftModernModalCloseButton}
+                  onPress={() => setShowAttendanceModal(false)}
+                >
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                style={dynamicStyles.shiftModernModalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Attendance Overview */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>📊 Anwesenheits-Status</Text>
+                  
+                  {Object.entries(usersByStatus).map(([status, users]) => (
+                    users.length > 0 && (
+                      <View key={status}>
+                        <Text style={dynamicStyles.shiftModernInputLabel}>
+                          {status === 'Im Dienst' ? '✅' : 
+                           status === 'Pause' ? '⏸️' : 
+                           status === 'Einsatz' ? '🚨' : '👤'} {status}
+                        </Text>
+                        <View style={dynamicStyles.shiftModernInputContainer}>
+                          <Ionicons 
+                            name={status === 'Im Dienst' ? 'shield-checkmark' : 
+                                  status === 'Pause' ? 'time' : 
+                                  status === 'Einsatz' ? 'flash' : 'person'} 
+                            size={20} 
+                            color={getStatusColor(status)} 
+                          />
+                          <Text style={dynamicStyles.shiftModernInput}>{users.length} Personen</Text>
+                        </View>
+                      </View>
+                    )
+                  ))}
+                </View>
+
+                {/* Detailed Attendance List */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>👮 Detaillierte Anwesenheit</Text>
+                  
+                  {Object.keys(usersByStatus).length === 0 ? (
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="people-outline" size={20} color={colors.textMuted} />
+                      <Text style={[dynamicStyles.shiftModernInput, { color: colors.textMuted }]}>
+                        Keine Anwesenheitsdaten verfügbar
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      {Object.entries(usersByStatus).map(([status, users]) => 
+                        users.length > 0 ? users.map((user, index) => (
+                          <View key={`${status}-${user.id || index}`}>
+                            <View style={dynamicStyles.shiftModernInputContainer}>
+                              <Ionicons name="person" size={20} color={getStatusColor(status)} />
+                              <Text style={dynamicStyles.shiftModernInput}>{user.username}</Text>
+                            </View>
+                            <Text style={dynamicStyles.shiftInputHint}>
+                              🛡️ {status} • 👥 {user.patrol_team || 'Kein Team'} • 📱 {user.phone || 'Keine Nummer'}
+                            </Text>
+                            <Text style={[dynamicStyles.shiftInputHint, { marginTop: 4, marginBottom: 16 }]}>
+                              🗺️ {user.assigned_district || 'Kein Bezirk'} • {user.is_online ? '🟢 Online' : '🔴 Offline'}
+                            </Text>
+                          </View>
+                        )) : null
+                      )}
+                    </>
+                  )}
+                </View>
+              </ScrollView>
+
+              {/* Modern Action Buttons */}
+              <View style={dynamicStyles.shiftModernModalActions}>
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.textMuted + '20' }]}
+                  onPress={() => setShowAttendanceModal(false)}
+                >
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: colors.textMuted }]}>
+                    Schließen
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.primary }]}
+                  onPress={() => loadUsersByStatus()}
+                >
+                  <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                    Aktualisieren
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Team Erstellung Modal - Exact Style like Urlaubsantrag */}
+      <Modal
+        visible={showAddTeamModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddTeamModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={dynamicStyles.shiftModalOverlay}>
+            <View style={[dynamicStyles.shiftModalContainer, { maxHeight: '80%' }]}>
+              {/* Modern Header */}
+              <View style={dynamicStyles.shiftModernModalHeader}>
+                <View style={[dynamicStyles.shiftModernModalIconContainer, { backgroundColor: colors.warning + '20' }]}>
+                  <Ionicons name="people-circle" size={28} color={colors.warning} />
+                </View>
+                <View style={dynamicStyles.shiftModernModalTitleContainer}>
+                  <Text style={dynamicStyles.shiftModernModalTitle}>👥 Neues Team erstellen</Text>
+                  <Text style={dynamicStyles.shiftModernModalSubtitle}>Teams und Patrouillen verwalten</Text>
+                </View>
+                <TouchableOpacity
+                  style={dynamicStyles.shiftModernModalCloseButton}
+                  onPress={() => setShowAddTeamModal(false)}
+                >
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                style={dynamicStyles.shiftModernModalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Team Details */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>📝 Team-Informationen</Text>
+                  
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Team-Name *</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="people" size={20} color={colors.primary} />
+                      <TextInput
+                        style={dynamicStyles.shiftModernInput}
+                        value={newTeamData.name}
+                        onChangeText={(value) => setNewTeamData({...newTeamData, name: value})}
+                        placeholder="z.B. Team Alpha, Streife Nord"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  </View>
+
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Beschreibung</Text>
+                    <View style={[dynamicStyles.shiftModernInputContainer, { alignItems: 'flex-start' }]}>
+                      <Ionicons name="document-text-outline" size={20} color={colors.primary} style={{ marginTop: 12 }} />
+                      <TextInput
+                        style={[dynamicStyles.shiftModernInput, { 
+                          height: 100, 
+                          textAlignVertical: 'top',
+                          paddingTop: 16
+                        }]}
+                        value={newTeamData.description}
+                        onChangeText={(value) => setNewTeamData({...newTeamData, description: value})}
+                        placeholder="Aufgaben und Verantwortlichkeiten..."
+                        placeholderTextColor={colors.textMuted}
+                        multiline
+                        numberOfLines={4}
+                      />
+                    </View>
+                    <Text style={dynamicStyles.shiftInputHint}>
+                      💡 Beschreibung der Aufgaben und Verantwortlichkeiten
+                    </Text>
+                  </View>
+
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Zugewiesener Bezirk</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="map" size={20} color={colors.primary} />
+                      <TextInput
+                        style={dynamicStyles.shiftModernInput}
+                        value={newTeamData.district}
+                        onChangeText={(value) => setNewTeamData({...newTeamData, district: value})}
+                        placeholder="z.B. Innenstadt, Nord, Süd"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  </View>
+
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Maximale Mitglieder</Text>
+                    <View style={dynamicStyles.shiftModernInputContainer}>
+                      <Ionicons name="person-add" size={20} color={colors.primary} />
+                      <TextInput
+                        style={dynamicStyles.shiftModernInput}
+                        value={newTeamData.max_members.toString()}
+                        onChangeText={(value) => {
+                          const num = parseInt(value) || 1;
+                          setNewTeamData({...newTeamData, max_members: Math.max(1, Math.min(20, num))});
+                        }}
+                        placeholder="6"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="number-pad"
+                      />
+                    </View>
+                    <Text style={dynamicStyles.shiftInputHint}>
+                      💡 Empfohlen: 4-8 Mitglieder pro Team für optimale Effizienz
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Team-Mitglieder Auswahl */}
+                <View style={dynamicStyles.shiftModernFormSection}>
+                  <Text style={dynamicStyles.shiftModernSectionLabel}>👥 Team-Mitglieder</Text>
+                  
+                  {/* Verfügbare Benutzer */}
+                  <View>
+                    <Text style={dynamicStyles.shiftModernInputLabel}>Verfügbare Benutzer ({availableUsers.length})</Text>
+                    {availableUsers.length === 0 ? (
+                      <View style={dynamicStyles.shiftModernInputContainer}>
+                        <Ionicons name="people-outline" size={20} color={colors.textMuted} />
+                        <Text style={[dynamicStyles.shiftModernInput, { color: colors.textMuted }]}>
+                          Keine Benutzer verfügbar
+                        </Text>
+                      </View>
+                    ) : (
+                      availableUsers.map((user, index) => {
+                        const isSelected = newTeamData.selectedMembers.some(member => member.id === user.id);
+                        return (
+                          <TouchableOpacity
+                            key={user.id || index}
+                            style={[
+                              dynamicStyles.shiftModernInputContainer,
+                              {
+                                backgroundColor: isSelected ? colors.success + '20' : colors.cardBackground,
+                                borderColor: isSelected ? colors.success : colors.border,
+                                borderWidth: 1,
+                                marginBottom: 8
+                              }
+                            ]}
+                            onPress={() => {
+                              if (isSelected) {
+                                // Entfernen
+                                setNewTeamData({
+                                  ...newTeamData,
+                                  selectedMembers: newTeamData.selectedMembers.filter(member => member.id !== user.id)
+                                });
+                              } else {
+                                // Hinzufügen (aber maximal max_members)
+                                if (newTeamData.selectedMembers.length < newTeamData.max_members) {
+                                  setNewTeamData({
+                                    ...newTeamData,
+                                    selectedMembers: [...newTeamData.selectedMembers, user]
+                                  });
+                                } else {
+                                  Alert.alert('⚠️ Limit erreicht', `Maximal ${newTeamData.max_members} Mitglieder pro Team`);
+                                }
+                              }
+                            }}
+                          >
+                            <Ionicons 
+                              name={isSelected ? "checkmark-circle" : "person"} 
+                              size={20} 
+                              color={isSelected ? colors.success : colors.primary} 
+                            />
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                              <Text style={[dynamicStyles.shiftModernInput, { 
+                                fontWeight: isSelected ? '600' : '400', 
+                                color: isSelected ? colors.success : colors.text 
+                              }]}>
+                                {user.username}
+                              </Text>
+                              <Text style={[dynamicStyles.shiftInputHint, { fontSize: 12, marginTop: 2 }]}>
+                                {user.role || 'Benutzer'} • {user.department || 'Allgemein'}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <Ionicons name="checkmark" size={16} color={colors.success} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
+                  </View>
+
+                  {/* Ausgewählte Mitglieder Übersicht */}
+                  {newTeamData.selectedMembers.length > 0 && (
+                    <View>
+                      <Text style={dynamicStyles.shiftModernInputLabel}>
+                        Ausgewählte Mitglieder ({newTeamData.selectedMembers.length}/{newTeamData.max_members})
+                      </Text>
+                      <View style={[dynamicStyles.shiftModernInputContainer, { 
+                        backgroundColor: colors.success + '10',
+                        borderColor: colors.success + '40',
+                        borderWidth: 1,
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        paddingVertical: 12
+                      }]}>
+                        <Ionicons name="people" size={20} color={colors.success} style={{ marginRight: 8 }} />
+                        {newTeamData.selectedMembers.map((member, index) => (
+                          <View key={member.id || index} style={{
+                            backgroundColor: colors.success + '20',
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 12,
+                            marginRight: 6,
+                            marginBottom: 4,
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}>
+                            <Text style={{ 
+                              color: colors.success, 
+                              fontSize: 12, 
+                              fontWeight: '500' 
+                            }}>
+                              {member.username}
+                            </Text>
+                            <TouchableOpacity
+                              style={{ marginLeft: 4 }}
+                              onPress={() => {
+                                setNewTeamData({
+                                  ...newTeamData,
+                                  selectedMembers: newTeamData.selectedMembers.filter(m => m.id !== member.id)
+                                });
+                              }}
+                            >
+                              <Ionicons name="close-circle" size={16} color={colors.success} />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                      <Text style={dynamicStyles.shiftInputHint}>
+                        💡 Tippen Sie auf einen Namen, um ihn zu entfernen
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+
+              {/* Modern Action Buttons */}
+              <View style={dynamicStyles.shiftModernModalActions}>
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.textMuted + '20' }]}
+                  onPress={() => setShowAddTeamModal(false)}
+                >
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: colors.textMuted }]}>
+                    Abbrechen
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.success }]}
+                  onPress={createNewTeam}
+                >
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                  <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                    Team erstellen
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Rejection Modal für Urlaubsanträge */}
+      <Modal 
+        visible={showRejectionModal} 
+        transparent={true}
+        animationType="fade" 
+        onRequestClose={() => setShowRejectionModal(false)}
+      >
+        <View style={dynamicStyles.shiftModalOverlay}>
+          <View style={[dynamicStyles.shiftModalContainer, { maxHeight: '60%' }]}>
+            {/* Modern Header */}
+            <View style={dynamicStyles.shiftModernModalHeader}>
+              <View style={[dynamicStyles.shiftModernModalIconContainer, { backgroundColor: colors.error + '20' }]}>
+                <Ionicons name="close-circle" size={28} color={colors.error} />
+              </View>
+              <View style={dynamicStyles.shiftModernModalTitleContainer}>
+                <Text style={dynamicStyles.shiftModernModalTitle}>❌ Urlaubsantrag ablehnen</Text>
+                <Text style={dynamicStyles.shiftModernModalSubtitle}>Ablehnungsgrund angeben</Text>
+              </View>
+              <TouchableOpacity
+                style={dynamicStyles.shiftModernModalCloseButton}
+                onPress={() => setShowRejectionModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={dynamicStyles.shiftModernModalContent}>
+              <View style={dynamicStyles.shiftModernFormSection}>
+                <Text style={dynamicStyles.shiftModernSectionLabel}>📝 Begründung der Ablehnung</Text>
+                <View style={dynamicStyles.shiftModernInputContainer}>
+                  <Ionicons name="document-text-outline" size={20} color={colors.error} />
+                  <TextInput
+                    style={[dynamicStyles.shiftModernInput, { 
+                      height: 100, 
+                      textAlignVertical: 'top',
+                      paddingTop: 16
+                    }]}
+                    value={rejectionReason}
+                    onChangeText={setRejectionReason}
+                    placeholder="z.B. Personalmangel, betriebliche Notwendigkeiten, Urlaubssperre..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+                <Text style={dynamicStyles.shiftInputHint}>
+                  ⚠️ Eine Begründung ist erforderlich für die Ablehnung
+                </Text>
+              </View>
+            </View>
+
+            {/* Modern Action Buttons */}
+            <View style={dynamicStyles.shiftModernModalActions}>
+              <TouchableOpacity
+                style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.textMuted + '20' }]}
+                onPress={() => {
+                  setShowRejectionModal(false);
+                  setRejectionReason('');
+                  setRejectionVacationId(null);
+                }}
+              >
+                <Text style={[dynamicStyles.shiftModernActionButtonText, { color: colors.textMuted }]}>
+                  Abbrechen
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[dynamicStyles.shiftModernActionButton, { backgroundColor: colors.error }]}
+                onPress={() => {
+                  if (rejectionReason.trim()) {
+                    handleVacationApproval(rejectionVacationId, 'reject', rejectionReason);
+                    setShowRejectionModal(false);
+                    setRejectionReason('');
+                    setRejectionVacationId(null);
+                  } else {
+                    Alert.alert('⚠️ Fehler', 'Bitte geben Sie einen Ablehnungsgrund an');
+                  }
+                }}
+              >
+                <Ionicons name="close-circle" size={18} color="#FFFFFF" />
+                <Text style={[dynamicStyles.shiftModernActionButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                  Antrag ablehnen
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Team Chat Modal */}
+      <Modal
+        visible={showTeamChatModal}
+        animationType="slide"
+        onRequestClose={() => setShowTeamChatModal(false)}
+      >
+        <SafeAreaView style={dynamicStyles.container}>
+          <View style={dynamicStyles.header}>
+            <TouchableOpacity style={dynamicStyles.closeButton} onPress={() => setShowTeamChatModal(false)}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={dynamicStyles.headerTitle}>💬 Team Chat</Text>
+            <View style={{ width: 60 }} />
+          </View>
+
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            {/* Chat Header Info */}
+            <View style={[dynamicStyles.formGroup, { backgroundColor: colors.primary + '10', borderRadius: 12, margin: 16, padding: 12 }]}>
+              <Text style={[dynamicStyles.formLabel, { color: colors.primary }]}>
+                👥 {userTeam?.name || 'Team Chat'}
+              </Text>
+              <Text style={[dynamicStyles.formText, { fontSize: 12, color: colors.textMuted }]}>
+                {userTeam?.members?.length || 0} Mitglieder • Echtzeit-Kommunikation
+              </Text>
+            </View>
+
+            {/* Chat Messages */}
+            <ScrollView 
+              style={{ flex: 1, paddingHorizontal: 16 }}
+              showsVerticalScrollIndicator={false}
+              ref={(ref) => {
+                if (ref && chatMessages.length > 0) {
+                  ref.scrollToEnd({ animated: true });
+                }
+              }}
+            >
+              {chatMessages.length === 0 ? (
+                <View style={[dynamicStyles.formGroup, { alignItems: 'center', marginTop: 50 }]}>
+                  <Ionicons name="chatbubbles-outline" size={64} color={colors.textMuted} />
+                  <Text style={[dynamicStyles.formLabel, { color: colors.textMuted, textAlign: 'center', marginTop: 16 }]}>
+                    Noch keine Nachrichten
+                  </Text>
+                  <Text style={[dynamicStyles.formText, { color: colors.textMuted, textAlign: 'center', marginTop: 8 }]}>
+                    Schreiben Sie die erste Nachricht in diesem Team-Chat
+                  </Text>
+                </View>
+              ) : (
+                chatMessages.map((message, index) => {
+                  const isOwnMessage = message.sender_id === user?.id;
+                  return (
+                    <View
+                      key={index}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
+                        marginBottom: 12,
+                        alignItems: 'flex-end'
+                      }}
+                    >
+                      {!isOwnMessage && (
+                        <View style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: colors.primary + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 8
+                        }}>
+                          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>
+                            {message.sender_username?.charAt(0).toUpperCase() || '?'}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      <View style={{
+                        maxWidth: '75%',
+                        backgroundColor: isOwnMessage ? colors.primary : colors.cardBackground,
+                        padding: 12,
+                        borderRadius: 18,
+                        borderBottomRightRadius: isOwnMessage ? 4 : 18,
+                        borderBottomLeftRadius: isOwnMessage ? 18 : 4,
+                        shadowColor: colors.shadow,
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 2,
+                        elevation: 2
+                      }}>
+                        {!isOwnMessage && (
+                          <Text style={{
+                            fontSize: 11,
+                            color: colors.textMuted,
+                            fontWeight: '600',
+                            marginBottom: 4
+                          }}>
+                            {message.sender_username}
+                          </Text>
+                        )}
+                        <Text style={{
+                          color: isOwnMessage ? '#FFFFFF' : colors.text,
+                          fontSize: 15,
+                          lineHeight: 20
+                        }}>
+                          {message.content}
+                        </Text>
+                        <Text style={{
+                          fontSize: 10,
+                          color: isOwnMessage ? '#FFFFFF80' : colors.textMuted,
+                          marginTop: 4,
+                          textAlign: isOwnMessage ? 'right' : 'left'
+                        }}>
+                          {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('de-DE', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          }) : 'Jetzt'}
+                        </Text>
+                      </View>
+
+                      {isOwnMessage && (
+                        <View style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: colors.success + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginLeft: 8
+                        }}>
+                          <Text style={{ color: colors.success, fontSize: 12, fontWeight: '600' }}>
+                            {user?.username?.charAt(0).toUpperCase() || 'S'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            {/* Message Input */}
+            <View style={{
+              flexDirection: 'row',
+              padding: 16,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              backgroundColor: colors.background,
+              alignItems: 'flex-end'
+            }}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <TextInput
+                  style={[dynamicStyles.formInput, {
+                    minHeight: 40,
+                    maxHeight: 100,
+                    paddingTop: 12,
+                    paddingBottom: 12,
+                    textAlignVertical: 'top'
+                  }]}
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                  placeholder="Nachricht schreiben..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  numberOfLines={1}
+                />
+              </View>
+              <TouchableOpacity
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: newMessage.trim() ? colors.primary : colors.textMuted,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: colors.shadow,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4,
+                  elevation: 4
+                }}
+                onPress={() => {
+                  if (newMessage.trim()) {
+                    const message = {
+                      id: Date.now().toString(),
+                      content: newMessage.trim(),
+                      sender_id: user?.id,
+                      sender_username: user?.username,
+                      timestamp: new Date().toISOString(),
+                      team_id: userTeam?.id
+                    };
+                    setChatMessages(prev => [...prev, message]);
+                    setNewMessage('');
+                    
+                    // Hier würde die Socket.IO Implementierung für Echtzeit-Chat kommen
+                    console.log('💬 Message sent:', message);
+                  }
+                }}
+                disabled={!newMessage.trim()}
+              >
+                <Ionicons name="send" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* SOS Modal - AddUserModal Style */}
       <Modal
         visible={showSOSModal}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setShowSOSModal(false)}
       >
         <SafeAreaView style={dynamicStyles.container}>
@@ -10147,42 +13409,68 @@ Beispielinhalt:
             >
               <Ionicons name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
-            
-            <View style={dynamicStyles.profileHeaderContent}>
-              <View style={dynamicStyles.sosIconContainer}>
-                <Ionicons name="warning" size={48} color="#FF0000" />
-              </View>
-              <Text style={dynamicStyles.sosModalTitle}>🚨 NOTFALL-ALARM</Text>
-              <Text style={dynamicStyles.sosModalSubtitle}>Alle Team-Mitglieder alarmieren</Text>
-            </View>
+            <Text style={dynamicStyles.profileModalTitle}>🚨 NOTFALL-ALARM</Text>
+            <View style={{ width: 40 }} />
           </View>
 
-          <ScrollView style={dynamicStyles.profileContent}>
-            <View style={dynamicStyles.sosWarningBox}>
-              <Text style={dynamicStyles.sosWarningTitle}>⚠️ WICHTIGER HINWEIS</Text>
-              <Text style={dynamicStyles.sosWarningText}>
-                • Nur bei echten Notfällen verwenden!{'\n'}
-                • Ihr GPS-Standort wird automatisch übertragen{'\n'}
-                • Alle Team-Mitglieder erhalten sofort eine Alarm-Nachricht{'\n'}
-                • Missbrauch kann disziplinäre Maßnahmen zur Folge haben
+          <ScrollView style={dynamicStyles.profileModalContent} showsVerticalScrollIndicator={false}>
+            {/* Warning Info Card */}
+            <View style={dynamicStyles.profileInfoCard}>
+              <Text style={[dynamicStyles.profileInfoText, { color: colors.error }]}>
+                ⚠️ Nur bei echten Notfällen verwenden! Alle Team-Mitglieder werden sofort alarmiert und Ihr GPS-Standort wird übertragen.
               </Text>
             </View>
 
-            <View style={dynamicStyles.sosLocationInfo}>
-              <Text style={dynamicStyles.sosLocationTitle}>📍 Ihr Standort</Text>
-              <Text style={dynamicStyles.sosLocationText}>
-                Wird automatisch ermittelt und an alle Team-Mitglieder gesendet
-              </Text>
+            <Text style={dynamicStyles.profileSectionTitle}>📍 Standort-Information</Text>
+
+            <View style={dynamicStyles.profileFormGroup}>
+              <View style={[dynamicStyles.profileInfoCard, { backgroundColor: colors.success + '10', borderColor: colors.success + '30' }]}>
+                <Text style={[dynamicStyles.profileInfoText, { color: colors.success }]}>
+                  📡 Ihr aktueller Standort wird automatisch ermittelt und an alle Team-Mitglieder gesendet, damit diese schnell Hilfe leisten können.
+                </Text>
+              </View>
             </View>
+
+            <Text style={dynamicStyles.profileSectionTitle}>🚨 Alarm-Details</Text>
+
+            <View style={dynamicStyles.profileFormGroup}>
+              <View style={dynamicStyles.sosAlarmCard}>
+                <View style={dynamicStyles.sosAlarmIcon}>
+                  <Ionicons name="alert-circle" size={32} color={colors.error} />
+                </View>
+                <View style={dynamicStyles.sosAlarmContent}>
+                  <Text style={dynamicStyles.sosAlarmTitle}>Notfall-Broadcast</Text>
+                  <Text style={dynamicStyles.sosAlarmDescription}>
+                    • Sofortige Benachrichtigung aller Team-Mitglieder{'\n'}
+                    • GPS-Koordinaten werden übertragen{'\n'}
+                    • Zeitstempel des Alarms wird gespeichert{'\n'}
+                    • Automatische Protokollierung für Berichte
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={dynamicStyles.profileSectionTitle}>⚡ Aktion</Text>
 
             <TouchableOpacity 
-              style={dynamicStyles.sosSendButton}
+              style={[dynamicStyles.profileSaveButton, { 
+                backgroundColor: colors.error,
+                paddingVertical: 20,
+                marginTop: 16,
+              }]}
               onPress={sendSOSAlarm}
             >
-              <Ionicons name="alert-circle" size={32} color="#FFFFFF" />
-              <Text style={dynamicStyles.sosSendButtonText}>🚨 NOTFALL-ALARM SENDEN</Text>
-              <Text style={dynamicStyles.sosSendButtonSubtext}>Alle Team-Mitglieder werden sofort alarmiert</Text>
+              <Ionicons name="warning" size={24} color="#FFFFFF" />
+              <Text style={[dynamicStyles.profileSaveButtonText, { marginLeft: 12 }]}>
+                🚨 NOTFALL-ALARM SENDEN
+              </Text>
             </TouchableOpacity>
+
+            <View style={[dynamicStyles.profileInfoCard, { marginTop: 16, backgroundColor: colors.textMuted + '10' }]}>
+              <Text style={[dynamicStyles.profileInfoText, { fontSize: 12, color: colors.textMuted }]}>
+                💡 Der Alarm wird sofort an alle verfügbaren Team-Mitglieder gesendet. Missbrauch kann disziplinäre Maßnahmen zur Folge haben.
+              </Text>
+            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -10256,3 +13544,4 @@ const AppContent = () => {
 
   return user ? <MainApp appConfig={appConfig} setAppConfig={setAppConfig} /> : <LoginScreen appConfig={appConfig} />;
 };
+
